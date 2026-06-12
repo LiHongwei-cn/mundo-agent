@@ -1,40 +1,49 @@
 #!/bin/bash
-# MUNDO Agent — macOS .app 启动脚本
-# 启动前自动检测版本，脱节则自动同步
+# MUNDO Agent v2.1.0 — macOS .app 启动脚本
+# 启动前自动从 GitHub 同步最新版本
 
 osascript <<'APPLESCRIPT'
 tell application "Terminal"
     activate
     do script "
         clear
-        
-        # ═══ 自动版本同步 ═══
-        SRC=\"$HOME/Desktop/lihongwei-cn/mundo-agent\"
-        DST=\"$HOME/.hermes/mundo-agent\"
-        
-        if [ -f \"$SRC/version.txt\" ] && [ -f \"$DST/version.txt\" ]; then
-            SRC_VER=$(cat \"$SRC/version.txt\" | tr -d '[:space:]')
-            DST_VER=$(cat \"$DST/version.txt\" | tr -d '[:space:]')
-            
-            if [ \"$SRC_VER\" != \"$DST_VER\" ]; then
-                echo \"  🔄 检测到版本脱节，自动同步中...\"
-                
-                # 同步 .py 文件
-                for f in mundo.py core.py llm.py setup.py tools.py approval.py display.py memory.py memory_import.py models.py agents.py delegation.py cloud_sync.py; do
-                    [ -f \"$SRC/$f\" ] && cp \"$SRC/$f\" \"$DST/$f\"
-                done
-                cp \"$SRC/version.txt\" \"$DST/version.txt\"
-                [ -f \"$SRC/requirements.txt\" ] && cp \"$SRC/requirements.txt\" \"$DST/requirements.txt\"
-                
-                echo \"  ✅ 已同步: $DST_VER → $SRC_VER\"
-                echo \"\"
-            fi
-        fi
+        echo \"\"
+        echo \"  👑 MUNDO — THE EMPEROR v2.1.0\"
+        echo \"  ════════════════════════════\"
+        echo \"\"
         
         cd ~/.hermes/mundo-agent
-        source venv/bin/activate
+        
+        # ═══ 自动从 GitHub 同步最新版本 ═══
+        if [ -d .git ]; then
+            LOCAL_VER=$(cat version.txt 2>/dev/null | tr -d '[:space:]')
+            echo \"  📦 本地版本: v\$LOCAL_VER\"
+            echo \"  🔄 检查 GitHub 更新...\"
+            
+            git fetch origin main --quiet 2>/dev/null
+            LOCAL_HASH=\$(git rev-parse HEAD 2>/dev/null)
+            REMOTE_HASH=\$(git rev-parse origin/main 2>/dev/null)
+            
+            if [ \"\$LOCAL_HASH\" != \"\$REMOTE_HASH\" ]; then
+                echo \"  ⬇️  发现新版本，自动更新中...\"
+                git pull origin main --quiet 2>/dev/null
+                NEW_VER=$(cat version.txt 2>/dev/null | tr -d '[:space:]')
+                echo \"  ✅ 已更新: v\$LOCAL_VER → v\$NEW_VER\"
+            else
+                echo \"  ✅ 已是最新版本\"
+            fi
+        else
+            echo \"  ⚠️  未检测到 Git 仓库，跳过同步\"
+        fi
+        
+        echo \"\"
+        echo \"  🚀 启动蒙多...\"
+        echo \"\"
+        
+        # ═══ 启动蒙多 ═══
+        source venv/bin/activate 2>/dev/null
         python3 mundo.py
     "
-    set custom title of front window to "MUNDO"
+    set custom title of front window to "MUNDO — THE EMPEROR"
 end tell
 APPLESCRIPT

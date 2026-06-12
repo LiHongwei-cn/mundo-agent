@@ -123,7 +123,7 @@ Layer 4: 对话摘要 — 最近 5 次会话摘要（跨会话连续性）
 
 ```bash
 # 克隆仓库
-git clone https://github.com/LiHongwei-cn/lihongwei-cn.git
+git clone https://github.com/LiHongwei-cn/mundo-agent.git
 cd lihongwei-cn/mundo-agent
 
 # 安装（自动创建虚拟环境 + macOS Dock 启动器，需要 Python 3.10+）
@@ -149,7 +149,7 @@ cp .env.example .env
 
 ```cmd
 # PowerShell 安装
-irm https://raw.githubusercontent.com/LiHongwei-cn/lihongwei-cn/main/mundo-agent/install.ps1 | iex
+irm https://raw.githubusercontent.com/LiHongwei-cn/mundo-agent/main/mundo-agent/install.ps1 | iex
 
 # 或手动
 mundo.bat
@@ -216,20 +216,22 @@ engine.py             兼容层（re-export）
 
 | 平台 | 下载 |
 |------|------|
-| macOS | [mundo-v2.1.0-macos.zip](https://github.com/LiHongwei-cn/lihongwei-cn/releases/download/mundo-v2.1.0/mundo-v2.1.0-macos.zip) |
-| Windows | [mundo-v2.1.0-windows.zip](https://github.com/LiHongwei-cn/lihongwei-cn/releases/download/mundo-v2.1.0/mundo-v2.1.0-windows.zip) |
-| Linux | [mundo-v2.1.0-linux.zip](https://github.com/LiHongwei-cn/lihongwei-cn/releases/download/mundo-v2.1.0/mundo-v2.1.0-linux.zip) |
-| 全平台 | [mundo-v2.1.0-all.zip](https://github.com/LiHongwei-cn/lihongwei-cn/releases/download/mundo-v2.1.0/mundo-v2.1.0-all.zip) |
+| macOS | [蒙多-v2.1.0-macos.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/蒙多-v2.1.0-macos.zip) |
+| Windows | [蒙多-v2.1.0-windows.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/蒙多-v2.1.0-windows.zip) |
+| Linux | [蒙多-v2.1.0-linux.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/蒙多-v2.1.0-linux.zip) |
+| 全平台 | [蒙多-v2.1.0-all.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/蒙多-v2.1.0-all.zip) |
 
 ### 历代版本
 
-所有历史版本可在 [GitHub Releases](https://github.com/LiHongwei-cn/lihongwei-cn/releases) 页面下载。
+所有历史版本可在 [GitHub Releases](https://github.com/LiHongwei-cn/mundo-agent/releases) 页面下载。
 
 ## 版本历史
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| v2.1.0 | 2026-06-10 | **稳定版**：帝皇无上限、工具循环防护 |
+| v2.1.0 | 2026-06-12 | **稳定版**：display.py 正则修复、GitHub 托管、版本统一 |
+| v2.0.9 | 2026-06-12 | GitHub 仓库初始化 |
+| v2.0.8 | 2026-06-10 | 三大Agent融合 |
 | v2.0.8 | 2026-06-10 | 三大Agent融合 |
 | v2.0.0 | 2026-06-09 | 任务规划与多模型协调 |
 | v1.8.0 | 2026-06-09 | 全模型智能适配 |
