@@ -216,10 +216,10 @@ engine.py             兼容层（re-export）
 
 | 平台 | 下载 |
 |------|------|
-| macOS | [蒙多-v2.1.0-macos.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/蒙多-v2.1.0-macos.zip) |
-| Windows | [蒙多-v2.1.0-windows.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/蒙多-v2.1.0-windows.zip) |
-| Linux | [蒙多-v2.1.0-linux.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/蒙多-v2.1.0-linux.zip) |
-| 全平台 | [蒙多-v2.1.0-all.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/蒙多-v2.1.0-all.zip) |
+| macOS | [mundo-v2.1.0-macos.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/mundo-v2.1.0-macos.zip) |
+| Windows | [mundo-v2.1.0-windows.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/mundo-v2.1.0-windows.zip) |
+| Linux | [mundo-v2.1.0-linux.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/mundo-v2.1.0-linux.zip) |
+| 全平台 | [mundo-v2.1.0-all.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.0/mundo-v2.1.0-all.zip) |
 
 ### 历代版本
 
