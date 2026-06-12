@@ -1,0 +1,43 @@
+# ── 敏感文件 ──
+.env
+*.db
+*.db.backup
+*.db-wal
+*.db-shm
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# ── 运行时 ──
+.mundo_history
+.memory_imported
+.setup_complete
+events.jsonl
+upload_queue.json
+sync_state.json
+checkpoint.db
+timeline.db
+memory.db
+memory.db.backup
+benchmark_results.json
+*.backup
+test_write.txt
+
+# ── IDE ──
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── macOS ──
+.DS_Store
+Thumbs.db
+
+# ── App bundles ──
+蒙多.app/
+蒙多-agent.app/

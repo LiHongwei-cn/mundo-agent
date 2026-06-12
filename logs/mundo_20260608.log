@@ -1,0 +1,252 @@
+2026-06-08 01:50:25 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 01:50:25 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 202, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 01:50:29 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 01:50:29 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 202, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 01:50:32 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 01:50:32 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 202, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 01:53:13 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 01:53:13 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 01:56:47 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 01:56:47 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 02:17:26 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 02:17:26 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 02:17:28 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 02:17:28 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 02:21:36 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 02:21:36 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 16:52:49 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 16:52:49 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 16:52:53 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 16:52:53 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 16:55:45 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 16:55:45 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:31:57 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:31:57 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:32:03 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:32:03 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:32:07 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:32:07 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:39:22 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:39:22 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:39:32 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:39:32 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:41:53 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:41:53 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:43:20 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:43:20 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 158, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:48:48 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:48:48 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:48:54 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:48:54 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-08 23:52:37 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-08 23:52:37 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/Desktop/lihongwei-cn/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-09 00:25:04 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-09 00:25:04 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-09 00:30:37 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-09 00:30:37 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-09 00:31:35 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-09 00:31:35 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-09 00:31:48 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-09 00:31:48 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-09 00:34:26 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-09 00:34:26 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-09 04:17:05 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-09 04:17:05 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
+2026-06-09 04:17:12 | INFO     | mundo.memory | 记忆整理完成: 去重 0, 淘汰 0
+2026-06-09 04:17:12 | ERROR    | mundo.tools | 工具 test 执行异常: 测试错误
+Traceback (most recent call last):
+  File "/Users/huangpeng/.hermes/mundo-agent/mundo_agent/tools/registry.py", line 162, in execute
+    result = tool.handler(validated_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/huangpeng/.hermes/mundo-agent/tests/test_registry.py", line 206, in handler
+    raise ValueError("测试错误")
+ValueError: 测试错误
