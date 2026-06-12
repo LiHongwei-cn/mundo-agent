@@ -1,4 +1,4 @@
-"""蒙多执行控制台 v2.1.0 — 极简艺术家
+"""蒙多执行控制台 v2.1.1 — 极简艺术家
 
 设计原则：
 - 少即是多。每一像素都有存在的理由
@@ -312,7 +312,6 @@ class TaskConsole:
         from prompt_toolkit.keys import Keys
         from prompt_toolkit.styles import Style
         from prompt_toolkit.key_binding import KeyBindings
-        from prompt_toolkit.output import vt100 as _pt_vt100
 
         hist_path = str(Path.home() / ".hermes" / "mundo-agent" / ".mundo_history")
         style = Style.from_dict({"prompt": "#d4a017 bold"})
@@ -360,20 +359,6 @@ class TaskConsole:
             event.current_buffer.paste_clipboard_data(ClipboardData(text=data))
             is_pasting[0] = False
 
-        # 创建 output，禁用 CPR (Cursor Position Request) 避免不支持的终端报 WARNING
-        def _get_term_size():
-            import shutil as _shutil
-            s = _shutil.get_terminal_size((80, 24))
-            from prompt_toolkit.data_structures import Size as _Size
-            return _Size(rows=s.lines, columns=s.columns)
-
-        try:
-            _out = _pt_vt100.Vt100_Output(
-                sys.stdout, get_size=_get_term_size, enable_cpr=False
-            )
-        except Exception:
-            _out = None
-
         session = PromptSession(
             history=history,
             style=style,
@@ -382,7 +367,6 @@ class TaskConsole:
             completer=SlashCompleter(),
             complete_while_typing=True,
             prompt_continuation="",
-            output=_out,
         )
 
         buf = session.app.current_buffer
