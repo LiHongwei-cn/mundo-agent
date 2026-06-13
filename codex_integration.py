@@ -24,8 +24,8 @@ class CodexAgent:
     def is_available(self) -> bool:
         return self.cmd is not None
 
-    def exec_full_auto(self, prompt: str, workdir: str = None, timeout: int = 20) -> str:
-        """全自动模式执行 Codex — 超时限制 20s 完成重试后降级"""
+    def exec_full_auto(self, prompt: str, workdir: str = None, timeout: int = 120) -> str:
+        """全自动模式执行 Codex — 超时120s，失败后降级到Claude Code"""
         if not self.is_available():
             return "[Codex 未安装]"
 

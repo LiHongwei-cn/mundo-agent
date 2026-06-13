@@ -102,11 +102,13 @@ def _codex_run(prompt: str, **kw) -> str:
         if not agent.is_available():
             return "[Codex 未安装]"
         workdir = kw.get('workdir')
-        timeout = min(kw.get('timeout', 20), 20)
+        timeout = min(kw.get('timeout', 30), 30)
         result = agent.exec_full_auto(prompt, workdir=workdir, timeout=timeout)
-        if "404" in result or "responses" in result.lower():
-            return _claude_run(prompt, **kw)
-        return result
+        # Codex 成功
+        if not result.startswith("["):
+            return result
+        # Codex 失败 → 降级到 Claude Code
+        return _claude_run(prompt, **kw)
     except Exception as e:
         return f"[Codex 错误: {e}]"
 
@@ -145,7 +147,7 @@ def _mimocode_run(prompt: str, **kw) -> str:
         if not agent.is_available():
             return "[MiMo Code 未安装]"
         workdir = kw.get('workdir')
-        timeout = kw.get('timeout', 60)
+        timeout = kw.get('timeout', 120)
         return agent.chat(prompt, workdir=workdir, timeout=timeout)
     except Exception as e:
         return f"[MiMo Code 错误: {e}]"
