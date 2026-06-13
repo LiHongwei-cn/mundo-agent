@@ -4,7 +4,7 @@
 
 **独立 AI 智能体框架 · 30+ 模型 · 三省六部制 · 集体意识 · 自我进化**
 
-[![Release](https://img.shields.io/badge/Release-v2.2.0-gold)](https://github.com/LiHongwei-cn/mundo-agent/releases/tag/v2.2.0)
+[![Release](https://img.shields.io/badge/Release-v2.2.1-gold)](https://github.com/LiHongwei-cn/mundo-agent/releases/tag/v2.2.1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 
@@ -104,10 +104,10 @@
 
 ```bash
 # 1. 下载最新版
-gh release download v2.2.0 -R LiHongwei-cn/mundo-agent -p "mundo-v2.2.0-macos.zip"
+gh release download v2.2.1 -R LiHongwei-cn/mundo-agent -p "mundo-v2.2.1-macos.zip"
 
 # 2. 解压到安装目录
-unzip mundo-v2.2.0-macos.zip -d ~/.hermes/mundo-agent
+unzip mundo-v2.2.1-macos.zip -d ~/.hermes/mundo-agent
 
 # 3. 安装依赖
 pip3 install rich prompt_toolkit httpx scrapling[all]
@@ -160,7 +160,7 @@ python3 ~/.hermes/mundo-agent/mundo.py
 
 ## 版本历史
 
-### v2.2.0 — 架构重构
+### v2.2.1 — 架构重构
 
 - **死代码清理**：删除 40+ 未使用文件，从 60+ 文件精简到 39 个核心模块
 - **配置统一**：删除未使用的 mundo.yaml，统一版本号
