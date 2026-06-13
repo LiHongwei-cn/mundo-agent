@@ -1,5 +1,5 @@
 #!/bin/bash
-# MUNDO Agent v2.1.0 — macOS .app 启动脚本
+# MUNDO Agent v2.1.3 — macOS .app 启动脚本
 # 启动前自动从 GitHub 同步最新版本
 
 osascript <<'APPLESCRIPT'
@@ -8,7 +8,7 @@ tell application "Terminal"
     do script "
         clear
         echo \"\"
-        echo \"  👑 MUNDO — THE EMPEROR v2.1.0\"
+        echo \"  👑 MUNDO — THE EMPEROR v2.1.3\"
         echo \"  ════════════════════════════\"
         echo \"\"
         

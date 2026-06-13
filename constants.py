@@ -1,4 +1,4 @@
-"""蒙多常量 v2.1.1 — 所有魔法数字的家
+"""蒙多常量 v2.1.2 — 所有魔法数字的家
 
 一处定义，全局引用。零硬编码散落。
 版本号由版本管理系统自动管理。
@@ -31,7 +31,7 @@ def _get_version():
         return get_current_version()
     except ImportError:
         # 如果版本管理系统不可用，返回默认版本
-        return "v2.1.1"
+        return "v2.1.2"
 
 VERSION = _get_version()
 
