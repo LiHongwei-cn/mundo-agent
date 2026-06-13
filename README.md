@@ -1,4 +1,4 @@
-# MUNDO Agent v2.1.4 — THE EMPEROR
+# MUNDO Agent v2.1.5 — THE EMPEROR
 
 ```
 ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -220,10 +220,10 @@ engine.py             兼容层（re-export）
 
 | 平台 | 下载 |
 |------|------|
-| macOS | [mundo-v2.1.4-macos.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.4/mundo-v2.1.4-macos.zip) |
-| Windows | [mundo-v2.1.4-windows.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.4/mundo-v2.1.4-windows.zip) |
-| Linux | [mundo-v2.1.4-linux.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.4/mundo-v2.1.4-linux.zip) |
-| 全平台 | [mundo-v2.1.4-all.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.4/mundo-v2.1.4-all.zip) |
+| macOS | [mundo-v2.1.5-macos.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.5/mundo-v2.1.5-macos.zip) |
+| Windows | [mundo-v2.1.5-windows.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.5/mundo-v2.1.5-windows.zip) |
+| Linux | [mundo-v2.1.5-linux.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.5/mundo-v2.1.5-linux.zip) |
+| 全平台 | [mundo-v2.1.5-all.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.5/mundo-v2.1.5-all.zip) |
 
 ### 历代版本
 
@@ -233,6 +233,7 @@ engine.py             兼容层（re-export）
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v2.1.5 | 2026-06-13 | **工具系统全面补全**：edit_file/json_process/web_search/http_request/code_analysis/MiMo集成，55项测试全通过 |
 | v2.1.4 | 2026-06-13 | **启动器缓存修复+Agent委托稳定性**：pyc缓存自动清理+Codex降级+MiMo集成+知识库169条 |
 | v2.1.3 | 2026-06-13 | **任务执行稳定性修复**：反射引擎误判修复+中断机制优化+迭代上限提升 |
 | v2.1.2 | 2026-06-13 | **脱胎换骨**：反射引擎+安全强化+智能恢复+RAG知识检索 |
