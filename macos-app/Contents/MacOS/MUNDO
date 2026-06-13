@@ -1,5 +1,5 @@
 #!/bin/bash
-# MUNDO Agent v2.1.3 — macOS .app 启动脚本
+# MUNDO Agent v2.1.4 — macOS .app 启动脚本
 # 启动前自动清理缓存，确保加载最新代码
 
 osascript <<'APPLESCRIPT'
