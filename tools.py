@@ -18,6 +18,7 @@ import glob as glob_mod
 import time
 import random
 from typing import Dict, Callable, List
+from pathlib import Path
 
 
 # ═══════════════════════════════════════════════
@@ -109,9 +110,15 @@ MAX_OUTPUT_CHARS = 8000
 
 # path 参数的常见别名
 _PATH_ALIASES = ("path", "file_path", "filename", "file", "filepath", "dir", "directory", "folder")
-_CONTENT_ALIASES = ("content", "text", "data", "body", "value")
+_CONTENT_ALIASES = ("content", "text", "body", "value")
 _COMMAND_ALIASES = ("command", "cmd", "shell", "exec", "run")
-_PATTERN_ALIASES = ("pattern", "regex", "query", "search", "keyword")
+_PATTERN_ALIASES = ("pattern", "regex", "search", "keyword")
+
+# 工具特定的参数保护：这些参数在特定工具中不应被规范化
+_TOOL_PARAM_PROTECT = {
+    "json_process": {"data"},
+    "mimo_memory_search": {"query"},
+}
 
 # 常见的嵌套包装键
 _WRAPPER_KEYS = ("parameters", "params", "args", "kwargs", "input", "data")
@@ -167,28 +174,31 @@ def _normalize_args(args: dict, tool_name: str = "") -> dict:
                 result[expected_param] = val
 
     # 2. 别名映射 → 统一为标准名（全面覆盖）
+    # 获取当前工具的参数保护列表
+    protected = _TOOL_PARAM_PROTECT.get(tool_name, set())
+
     for alias in _PATH_ALIASES:
-        if alias in result and "path" not in result:
+        if alias in result and "path" not in result and alias not in protected:
             result["path"] = result.pop(alias)
             break
 
     for alias in _CONTENT_ALIASES:
-        if alias in result and "content" not in result:
+        if alias in result and "content" not in result and alias not in protected:
             result["content"] = result.pop(alias)
             break
 
     for alias in _COMMAND_ALIASES:
-        if alias in result and "command" not in result:
+        if alias in result and "command" not in result and alias not in protected:
             result["command"] = result.pop(alias)
             break
 
     for alias in _PATTERN_ALIASES:
-        if alias in result and "pattern" not in result:
+        if alias in result and "pattern" not in result and alias not in protected:
             result["pattern"] = result.pop(alias)
             break
 
     for alias in ("workdir", "work_dir", "cwd", "directory"):
-        if alias in result and "workdir" not in result:
+        if alias in result and "workdir" not in result and alias not in protected:
             result["workdir"] = result.pop(alias)
             break
 
@@ -221,7 +231,7 @@ def _truncate(text: str, limit: int = MAX_OUTPUT_CHARS) -> str:
         return text
     head = text[:int(limit * 0.6)]
     tail = text[-int(limit * 0.3):]
-    return f"{head}\n... ({len(text)} 字符，已省略) ...\n{tail}"
+    return f"{head}\n... 省略中间部分 ({len(text)} 字符) ...\n{tail}"
 
 
 # ═══════════════════════════════════════════════
@@ -469,6 +479,251 @@ def _python_execute(args: Dict) -> str:
 
 
 # ═══════════════════════════════════════════════
+# edit_file
+# ═══════════════════════════════════════════════
+
+def _edit_file(args: Dict) -> str:
+    path = args.get("path", "")
+    if not path:
+        return "[错误: edit_file 缺少 path 参数]"
+    old_string = args.get("old_string", "")
+    new_string = args.get("new_string", "")
+    if not old_string:
+        return "[错误: edit_file 缺少 old_string 参数]"
+    path = os.path.expanduser(path)
+    if not os.path.exists(path):
+        return f"[错误: 文件不存在: {path}]"
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        if old_string not in content:
+            return f"[错误: 未找到字符串: {old_string[:50]}]"
+        new_content = content.replace(old_string, new_string, 1)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+        return f"✓ 已编辑: {path}"
+    except Exception as e:
+        return f"[错误: {e}]"
+
+
+# ═══════════════════════════════════════════════
+# json_process
+# ═══════════════════════════════════════════════
+
+def _json_process(args: Dict) -> str:
+    data = args.get("data", "")
+    if not data:
+        return "[错误: json_process 缺少 data 参数]"
+    operation = args.get("operation", "parse")
+    try:
+        obj = json.loads(data)
+    except json.JSONDecodeError as e:
+        if operation == "validate":
+            return f"无效: {e}"
+        return f"[错误: JSON 解析失败: {e}]"
+    if operation == "validate":
+        return "有效"
+    if operation == "keys":
+        if isinstance(obj, dict):
+            return ", ".join(obj.keys())
+        return "[错误: 非字典类型，无法获取 keys]"
+    if operation == "path":
+        json_path = args.get("path", "")
+        if not json_path:
+            return "[错误: path 操作需要 path 参数]"
+        current = obj
+        for key in json_path.split("."):
+            if isinstance(current, dict):
+                current = current.get(key)
+            elif isinstance(current, list):
+                try:
+                    current = current[int(key)]
+                except (ValueError, IndexError):
+                    return f"[错误: 无效索引: {key}]"
+            else:
+                return f"[错误: 无法访问: {key}]"
+        return json.dumps(current, ensure_ascii=False)
+    return json.dumps(obj, ensure_ascii=False, indent=2)
+
+
+# ═══════════════════════════════════════════════
+# MiMo 集成工具
+# ═══════════════════════════════════════════════
+
+_MIMO_CHECKPOINT_DIR = Path.home() / ".hermes" / "mundo-agent" / "checkpoints"
+_MIMO_MEMORY_FILE = Path.home() / ".hermes" / "mundo-agent" / "mimo_memory.json"
+_MIMO_TASKS_FILE = Path.home() / ".hermes" / "mundo-agent" / "mimo_tasks.json"
+_MIMO_GOAL_FILE = Path.home() / ".hermes" / "mundo-agent" / "mimo_goal.json"
+
+
+def _mimo_checkpoint_save(args: Dict) -> str:
+    session_id = args.get("session_id", "default")
+    sections = args.get("sections", {})
+    if not sections:
+        return "[错误: mimo_checkpoint_save 缺少 sections 参数]"
+    _MIMO_CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+    path = _MIMO_CHECKPOINT_DIR / f"{session_id}.json"
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(sections, f, ensure_ascii=False, indent=2)
+        return f"✓ 检查点已保存: {session_id}"
+    except Exception as e:
+        return f"[错误: {e}]"
+
+
+def _mimo_checkpoint_load(args: Dict) -> str:
+    session_id = args.get("session_id", "default")
+    path = _MIMO_CHECKPOINT_DIR / f"{session_id}.json"
+    if not path.exists():
+        return f"[错误: 检查点不存在: {session_id}]"
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            sections = json.load(f)
+        lines = [f"检查点: {session_id}"]
+        for k, v in sections.items():
+            lines.append(f"  {k}: {v}")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"[错误: {e}]"
+
+
+def _load_json_file(path: Path) -> list:
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+    return []
+
+
+def _save_json_file(path: Path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _mimo_memory_add(args: Dict) -> str:
+    content = args.get("content", "")
+    if not content:
+        return "[错误: mimo_memory_add 缺少 content 参数]"
+    mem_type = args.get("type", "fact")
+    memories = _load_json_file(_MIMO_MEMORY_FILE)
+    memories.append({"content": content, "type": mem_type, "timestamp": time.time()})
+    _save_json_file(_MIMO_MEMORY_FILE, memories)
+    return f"✓ 已添加记忆: {content[:50]}"
+
+
+def _mimo_memory_search(args: Dict) -> str:
+    query = args.get("query", "")
+    if not query:
+        return "[错误: mimo_memory_search 缺少 query 参数]"
+    memories = _load_json_file(_MIMO_MEMORY_FILE)
+    matches = [m for m in memories if query.lower() in m.get("content", "").lower()]
+    if not matches:
+        return f"搜索结果: 未找到匹配 '{query}' 的记忆"
+    lines = [f"搜索结果: {len(matches)} 条匹配"]
+    for m in matches[:10]:
+        lines.append(f"  [{m.get('type', '?')}] {m.get('content', '')}")
+    return "\n".join(lines)
+
+
+def _mimo_task_create(args: Dict) -> str:
+    task_id = args.get("task_id", "")
+    title = args.get("title", "")
+    if not task_id or not title:
+        return "[错误: mimo_task_create 缺少 task_id 或 title]"
+    tasks = _load_json_file(_MIMO_TASKS_FILE)
+    tasks.append({"task_id": task_id, "title": title, "status": "pending", "created": time.time()})
+    _save_json_file(_MIMO_TASKS_FILE, tasks)
+    return f"✓ 已创建任务: {task_id}"
+
+
+def _mimo_task_update(args: Dict) -> str:
+    task_id = args.get("task_id", "")
+    status = args.get("status", "")
+    if not task_id or not status:
+        return "[错误: mimo_task_update 缺少 task_id 或 status]"
+    tasks = _load_json_file(_MIMO_TASKS_FILE)
+    for t in tasks:
+        if t.get("task_id") == task_id:
+            t["status"] = status
+            _save_json_file(_MIMO_TASKS_FILE, tasks)
+            return f"✓ 已更新任务: {task_id} -> {status}"
+    return f"[错误: 未找到任务: {task_id}]"
+
+
+def _mimo_task_list(args: Dict) -> str:
+    tasks = _load_json_file(_MIMO_TASKS_FILE)
+    if not tasks:
+        return "任务列表: 空"
+    lines = ["任务列表:"]
+    for t in tasks:
+        lines.append(f"  [{t.get('status', '?')}] {t.get('task_id', '?')} - {t.get('title', '?')}")
+    return "\n".join(lines)
+
+
+def _mimo_goal_set(args: Dict) -> str:
+    condition = args.get("condition", "")
+    if not condition:
+        return "[错误: mimo_goal_set 缺少 condition 参数]"
+    _save_json_file(_MIMO_GOAL_FILE, {"condition": condition, "set_at": time.time()})
+    return f"✓ 目标已设置: {condition}"
+
+
+# ═══════════════════════════════════════════════
+# web_search / http_request / code_analysis
+# ═══════════════════════════════════════════════
+
+def _web_search(args: Dict) -> str:
+    query = args.get("query", "")
+    if not query:
+        return "[错误: web_search 缺少 query 参数]"
+    try:
+        import urllib.request
+        import urllib.parse
+        url = f"https://www.google.com/search?q={urllib.parse.quote(query)}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+        return _truncate(f"搜索: {query}\n{html[:2000]}")
+    except Exception as e:
+        return f"[错误: web_search 失败: {e}]"
+
+
+def _http_request(args: Dict) -> str:
+    url = args.get("url", "")
+    if not url:
+        return "[错误: http_request 缺少 url 参数]"
+    method = args.get("method", "GET").upper()
+    try:
+        import urllib.request
+        req = urllib.request.Request(url, method=method)
+        req.add_header("User-Agent", "Mozilla/5.0")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+        return _truncate(f"HTTP {resp.status} {resp.reason}\n{body}")
+    except Exception as e:
+        return f"[错误: http_request 失败: {e}]"
+
+
+def _code_analysis(args: Dict) -> str:
+    code = args.get("code", "")
+    if not code:
+        return "[错误: code_analysis 缺少 code 参数]"
+    lines = code.split("\n")
+    analysis = {
+        "total_lines": len(lines),
+        "blank_lines": sum(1 for l in lines if not l.strip()),
+        "comment_lines": sum(1 for l in lines if l.strip().startswith("#")),
+        "function_count": sum(1 for l in lines if l.strip().startswith("def ")),
+        "class_count": sum(1 for l in lines if l.strip().startswith("class ")),
+        "import_count": sum(1 for l in lines if l.strip().startswith(("import ", "from "))),
+    }
+    return json.dumps(analysis, ensure_ascii=False, indent=2)
+
+
+# ═══════════════════════════════════════════════
 # 注册所有工具
 # ═══════════════════════════════════════════════
 
@@ -539,6 +794,117 @@ registry.register(
         "timeout": {"type": "integer", "description": "超时秒数"},
     }},
     _python_execute, required=["code"],
+)
+
+registry.register(
+    "edit_file", "编辑文件内容（查找替换）",
+    {"type": "object", "properties": {
+        "path": {"type": "string", "description": "文件路径"},
+        "old_string": {"type": "string", "description": "要查找的字符串"},
+        "new_string": {"type": "string", "description": "替换后的字符串"},
+    }},
+    _edit_file, required=["path", "old_string"],
+)
+
+registry.register(
+    "json_process", "JSON 处理（解析/验证/提取）",
+    {"type": "object", "properties": {
+        "data": {"type": "string", "description": "JSON 字符串"},
+        "operation": {"type": "string", "description": "操作类型: parse/keys/path/validate"},
+        "path": {"type": "string", "description": "JSON 路径（path 操作用）"},
+    }},
+    _json_process, required=["data"],
+)
+
+registry.register(
+    "mimo_checkpoint_save", "保存会话检查点",
+    {"type": "object", "properties": {
+        "session_id": {"type": "string", "description": "会话 ID"},
+        "sections": {"type": "object", "description": "检查点内容"},
+    }},
+    _mimo_checkpoint_save, required=["session_id", "sections"],
+)
+
+registry.register(
+    "mimo_checkpoint_load", "加载会话检查点",
+    {"type": "object", "properties": {
+        "session_id": {"type": "string", "description": "会话 ID"},
+    }},
+    _mimo_checkpoint_load, required=["session_id"],
+)
+
+registry.register(
+    "mimo_memory_add", "添加记忆条目",
+    {"type": "object", "properties": {
+        "content": {"type": "string", "description": "记忆内容"},
+        "type": {"type": "string", "description": "记忆类型"},
+    }},
+    _mimo_memory_add, required=["content"],
+)
+
+registry.register(
+    "mimo_memory_search", "搜索记忆",
+    {"type": "object", "properties": {
+        "query": {"type": "string", "description": "搜索关键词"},
+    }},
+    _mimo_memory_search, required=["query"],
+)
+
+registry.register(
+    "mimo_task_create", "创建任务",
+    {"type": "object", "properties": {
+        "task_id": {"type": "string", "description": "任务 ID"},
+        "title": {"type": "string", "description": "任务标题"},
+    }},
+    _mimo_task_create, required=["task_id", "title"],
+)
+
+registry.register(
+    "mimo_task_update", "更新任务状态",
+    {"type": "object", "properties": {
+        "task_id": {"type": "string", "description": "任务 ID"},
+        "status": {"type": "string", "description": "新状态"},
+    }},
+    _mimo_task_update, required=["task_id", "status"],
+)
+
+registry.register(
+    "mimo_task_list", "列出所有任务",
+    {"type": "object", "properties": {}},
+    _mimo_task_list, required=[],
+)
+
+registry.register(
+    "mimo_goal_set", "设置目标条件",
+    {"type": "object", "properties": {
+        "condition": {"type": "string", "description": "目标条件"},
+    }},
+    _mimo_goal_set, required=["condition"],
+)
+
+registry.register(
+    "web_search", "网络搜索",
+    {"type": "object", "properties": {
+        "query": {"type": "string", "description": "搜索关键词"},
+    }},
+    _web_search, required=["query"],
+)
+
+registry.register(
+    "http_request", "HTTP 请求",
+    {"type": "object", "properties": {
+        "url": {"type": "string", "description": "请求 URL"},
+        "method": {"type": "string", "description": "请求方法: GET/POST/PUT/DELETE"},
+    }},
+    _http_request, required=["url"],
+)
+
+registry.register(
+    "code_analysis", "代码分析",
+    {"type": "object", "properties": {
+        "code": {"type": "string", "description": "要分析的代码"},
+    }},
+    _code_analysis, required=["code"],
 )
 
 
