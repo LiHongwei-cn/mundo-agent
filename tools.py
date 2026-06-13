@@ -67,20 +67,151 @@ class ToolRegistry:
             return f"[错误: 未知工具 {name}]"
         if not isinstance(args, dict):
             args = {}
+
+        # v3.1.0: 参数规范化 + 记录原始参数用于调试
+        original_keys = list(args.keys()) if args else []
+        args = _normalize_args(args, name)
+        normalized_keys = list(args.keys())
+
         try:
             result = handler(args)
-            if isinstance(result, str) and "缺少" in result:
+
+            # v3.1.0: 增强错误反馈
+            if isinstance(result, str) and ("缺少" in result or "错误" in result):
                 req = self._required.get(name, [])
                 if req:
-                    result += f"\n正确用法: {name}({', '.join(req)})"
+                    fix_hint = f"\n\n⚠️ 参数错误修复指南:"
+                    fix_hint += f"\n工具: {name}"
+                    fix_hint += f"\n必需参数: {', '.join(req)}"
+                    fix_hint += f"\n原始参数: {original_keys}"
+                    fix_hint += f"\n规范化后: {normalized_keys}"
+                    fix_hint += f"\n\n请重新调用: {name}({', '.join(req)})"
+                    result += fix_hint
+
             return result
         except Exception as e:
-            return f"工具 {name} 执行失败: {e}"
+            err_msg = f"工具 {name} 执行失败: {e}"
+            req = self._required.get(name, [])
+            if req and any(kw in str(e) for kw in ("缺少", "required", "missing", "必需")):
+                err_msg += f"\n必需参数: {', '.join(req)}"
+                err_msg += f"\n收到的参数: {original_keys}"
+            return err_msg
 
 
 registry = ToolRegistry()
 
 MAX_OUTPUT_CHARS = 8000
+
+
+# ═══════════════════════════════════════════════
+# 参数规范化 — 解决 LLM 调用格式不稳定问题
+# ═══════════════════════════════════════════════
+
+# path 参数的常见别名
+_PATH_ALIASES = ("path", "file_path", "filename", "file", "filepath", "dir", "directory", "folder")
+_CONTENT_ALIASES = ("content", "text", "data", "body", "value")
+_COMMAND_ALIASES = ("command", "cmd", "shell", "exec", "run")
+_PATTERN_ALIASES = ("pattern", "regex", "query", "search", "keyword")
+
+# 常见的嵌套包装键
+_WRAPPER_KEYS = ("parameters", "params", "args", "kwargs", "input", "data")
+
+
+def _normalize_args(args: dict, tool_name: str = "") -> dict:
+    """规范化工具参数 — 处理 LLM 输出的各种格式问题
+
+    处理情况（v3.1.0 增强）：
+    1. 嵌套解包: {"parameters": {"path": "x"}} → {"path": "x"}
+    2. 别名映射: path/content/command/pattern 四大参数全别名覆盖
+    3. 类型修正: {"path": 123} → {"path": "123"}
+    4. 空值处理: {"path": null} → {"path": ""}
+    5. 工具名片名: {"write_file": "/path/to/file"} → {"path": "/path/to/file"}
+    6. 值穿透: 单值列表自动按位置拆分
+    """
+    if not isinstance(args, dict):
+        return {}
+
+    result = dict(args)  # 浅拷贝
+
+    # 1. 解包嵌套参数（最多解3层，防死循环）
+    for _ in range(3):
+        if len(result) == 1:
+            key = next(iter(result))
+            if key in _WRAPPER_KEYS and isinstance(result[key], dict):
+                result = dict(result[key])
+            else:
+                break
+        else:
+            break
+
+    # 1.5 工具名片名处理: LLM 有时输出 {"write_file": "xxx"} 或 {"read_file": "xxx"}
+    _tool_name_map = {
+        "write_file": "path",
+        "read_file": "path",
+        "edit_file": "path",
+        "search_files": "pattern",
+        "list_directory": "path",
+        "terminal": "command",
+        "python_execute": "code",
+    }
+    if tool_name in _tool_name_map and tool_name in result:
+        expected_param = _tool_name_map[tool_name]
+        val = result.pop(tool_name)
+        if expected_param not in result and isinstance(val, (str, list)):
+            if isinstance(val, list):
+                if expected_param == "path" and len(val) >= 1:
+                    result["path"] = val[0]
+                if "content" not in result and len(val) >= 2:
+                    result["content"] = val[1]
+            else:
+                result[expected_param] = val
+
+    # 2. 别名映射 → 统一为标准名（全面覆盖）
+    for alias in _PATH_ALIASES:
+        if alias in result and "path" not in result:
+            result["path"] = result.pop(alias)
+            break
+
+    for alias in _CONTENT_ALIASES:
+        if alias in result and "content" not in result:
+            result["content"] = result.pop(alias)
+            break
+
+    for alias in _COMMAND_ALIASES:
+        if alias in result and "command" not in result:
+            result["command"] = result.pop(alias)
+            break
+
+    for alias in _PATTERN_ALIASES:
+        if alias in result and "pattern" not in result:
+            result["pattern"] = result.pop(alias)
+            break
+
+    for alias in ("workdir", "work_dir", "cwd", "directory"):
+        if alias in result and "workdir" not in result:
+            result["workdir"] = result.pop(alias)
+            break
+
+    # 3. 类型修正 — 所有字符串参数统一转 str
+    _STRING_KEYS = ("path", "workdir", "command", "code", "pattern", "content",
+                    "message", "old_string", "new_string", "branch_name")
+    for key in _STRING_KEYS:
+        if key in result and result[key] is not None:
+            if not isinstance(result[key], str):
+                if isinstance(result[key], (list, dict)):
+                    try:
+                        result[key] = json.dumps(result[key], ensure_ascii=False)
+                    except (TypeError, ValueError):
+                        result[key] = str(result[key])
+                else:
+                    result[key] = str(result[key])
+
+    # 4. 空值 → 空字符串（让 handler 能正确检测缺失）
+    for key in _STRING_KEYS:
+        if key in result and result[key] is None:
+            result[key] = ""
+
+    return result
 
 
 def _truncate(text: str, limit: int = MAX_OUTPUT_CHARS) -> str:
@@ -100,7 +231,8 @@ def _truncate(text: str, limit: int = MAX_OUTPUT_CHARS) -> str:
 def _terminal(args: Dict) -> str:
     cmd = args.get("command", "")
     if not cmd:
-        return "[错误: terminal 缺少 command 参数]"
+        keys = list(args.keys()) if args else []
+        return f"[错误: terminal 缺少 command 参数，收到: {keys}]"
     workdir = args.get("workdir") or os.getcwd()
     timeout = args.get("timeout", 120)
     try:
@@ -135,7 +267,8 @@ def _terminal(args: Dict) -> str:
 def _read_file(args: Dict) -> str:
     path = args.get("path", "")
     if not path:
-        return "[错误: read_file 缺少 path 参数]"
+        keys = list(args.keys()) if args else []
+        return f"[错误: read_file 缺少 path 参数，收到: {keys}]"
     path = os.path.expanduser(path)
     offset = args.get("offset", 1)
     limit = args.get("limit", 500)
@@ -165,10 +298,11 @@ def _read_file(args: Dict) -> str:
 def _write_file(args: Dict) -> str:
     path = args.get("path", "")
     if not path:
-        return "[错误: write_file 缺少 path 参数]"
+        keys = list(args.keys()) if args else []
+        return f"[错误: write_file 缺少 path 参数，收到: {keys}]"
     content = args.get("content") or ""
     if not content:
-        return "[错误: write_file 缺少 content 参数]"
+        return f"[错误: write_file 缺少 content 参数，path={path[:50]}]"
     path = os.path.expanduser(path)
     try:
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
