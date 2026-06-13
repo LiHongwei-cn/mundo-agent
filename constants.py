@@ -93,7 +93,7 @@ MAX_CONVERSATION_RESULTS = 5
 # 稳定性
 # ═══════════════════════════════════════════════
 
-STUCK_THRESHOLD = 3
+STUCK_THRESHOLD = 5
 MAX_RETRY = 3
 RETRY_DELAY = 2.0
 
@@ -101,18 +101,18 @@ RETRY_DELAY = 2.0
 # 帝皇决心
 # ═══════════════════════════════════════════════
 
-MAX_ITERATIONS = 50
-IDLE_TIMEOUT = 300
-LONG_TASK_THRESHOLD = 20
+MAX_ITERATIONS = 80
+IDLE_TIMEOUT = 600
+LONG_TASK_THRESHOLD = 30
 TASK_ABANDON_TIMEOUT = 1800
-PROGRESS_CHECK_INTERVAL = 5
+PROGRESS_CHECK_INTERVAL = 10
 
 # ═══════════════════════════════════════════════
 # 反射引擎
 # ═══════════════════════════════════════════════
 
-REFLECTION_MAX_TURNS = 10
-REFLECTION_SUCCESS_THRESHOLD = 0.8
+REFLECTION_MAX_TURNS = 30
+REFLECTION_SUCCESS_THRESHOLD = 0.6
 
 # ═══════════════════════════════════════════════
 # 安全强化

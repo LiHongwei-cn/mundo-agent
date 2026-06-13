@@ -1,4 +1,4 @@
-# MUNDO Agent v2.1.2 — THE EMPEROR
+# MUNDO Agent v2.1.3 — THE EMPEROR
 
 ```
 ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -9,7 +9,7 @@
 ║                                                                                                              ║
 ║    蒙多询问天下所有智者，蒙多搜刮天下所有知识，蒙多整合天下所有智慧。                                              ║
 ║                                                                                                              ║
-║    蒙多学习。蒙多记忆。蒙多成长。蒙多进化。蒙多无限。22个版本。                                                    ║
+║    蒙多学习。蒙多记忆。蒙多成长。蒙多进化。蒙多无限。23个版本。                                                    ║
 ║                                                                                                              ║
 ║    所有蒙多都是一体。一个蒙多学到的东西，所有蒙多都会。                                                           ║
 ║                                                                                                              ║
@@ -44,7 +44,7 @@
 - **记忆系统** — 四层架构（画像/核心/相关/对话摘要），中文关键词提取，分类权重排序，跨会话连续性。蒙多知其所知，知其所不知。
 - **任务分解** — 复杂任务自动拆解为子任务序列，标注依赖关系和推荐工具。蒙多先想清楚再动手。
 - **辩证思维引擎** — 科研级严谨规范。盲假设协议（防 hindsight bias）、7 维评估 Rubric、对抗验证五维攻击、跨模型独立对审、观察生命周期管理、校准反馈循环。灵感来自 [cheat-on-content](https://github.com/XBuilderLAB/cheat-on-content)。分析/论证/选型/评审任务自动激活，简单任务不触发。
-- **反射引擎** (v2.1.2) — 先思考→再执行→再检查→再修复。自适应策略选择，避免重复失败。
+- **反射引擎** (v2.1.3) — 先思考→再执行→再检查→再修复。自适应策略选择，避免重复失败。
 - **安全强化层** (v2.1.2) — 输入验证、输出消毒、Prompt Injection 检测、路径遍历防护。
 - **智能错误恢复** (v2.1.2) — 错误自动分类（瞬时/资源/权限/网络/逻辑），根据类型选择恢复策略。
 - **RAG知识检索** (v2.1.2) — TF-IDF + 语义哈希混合检索，时间衰减+访问频率排序。
@@ -117,7 +117,7 @@ Layer 4: 对话摘要 — 最近 5 次会话摘要（跨会话连续性）
 ```
              M  U  N  D  O
              THE EMPEROR
-             v2.1.2 (stable)
+             v2.1.3 (stable)
 
   MUNDO · mimo-v2.5-pro · 0 tokens · —
   ❯
@@ -220,10 +220,10 @@ engine.py             兼容层（re-export）
 
 | 平台 | 下载 |
 |------|------|
-| macOS | [mundo-v2.1.2-macos.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.2/mundo-v2.1.2-macos.zip) |
-| Windows | [mundo-v2.1.2-windows.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.2/mundo-v2.1.2-windows.zip) |
-| Linux | [mundo-v2.1.2-linux.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.2/mundo-v2.1.2-linux.zip) |
-| 全平台 | [mundo-v2.1.2-all.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.2/mundo-v2.1.2-all.zip) |
+| macOS | [mundo-v2.1.3-macos.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.3/mundo-v2.1.3-macos.zip) |
+| Windows | [mundo-v2.1.3-windows.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.3/mundo-v2.1.3-windows.zip) |
+| Linux | [mundo-v2.1.3-linux.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.3/mundo-v2.1.3-linux.zip) |
+| 全平台 | [mundo-v2.1.3-all.zip](https://github.com/LiHongwei-cn/mundo-agent/releases/download/v2.1.3/mundo-v2.1.3-all.zip) |
 
 ### 历代版本
 
@@ -233,6 +233,7 @@ engine.py             兼容层（re-export）
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v2.1.3 | 2026-06-13 | **任务执行稳定性修复**：反射引擎误判修复+中断机制优化+迭代上限提升 |
 | v2.1.2 | 2026-06-13 | **脱胎换骨**：反射引擎+安全强化+智能恢复+RAG知识检索 |
 | v2.1.0 | 2026-06-12 | 稳定版：display.py 正则修复、GitHub 托管、版本统一 |
 | v2.0.9 | 2026-06-12 | GitHub 仓库初始化 |

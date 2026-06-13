@@ -212,42 +212,70 @@ class ReflectionEngine:
             self.task_memory.record_lesson(lesson)
 
     def analyze_output(self, output: str, expected_pattern: str = "") -> ReflectionVerdict:
-        """分析输出质量，自动判定结果"""
+        """分析输出质量，自动判定结果
+
+        设计原则：只判定"蒙多自身是否产出了有效结果"，
+        不因为输出中讨论/修复/分析错误而误判为失败。
+        """
         if not output or not output.strip():
             return ReflectionVerdict.FAILURE
 
-        # 检测幻觉模式
-        hallucination_markers = [
-            "我无法确认", "我不确定", "可能是", "大概是",
-            "我猜测", "假设", "如果我没记错",
+        # 真正的失败特征：蒙多明确表示自己无法完成
+        true_failure_phrases = [
+            "蒙多无法完成", "蒙多失败了", "任务无法执行",
+            "i cannot complete", "i'm unable to",
+            "抱歉，我无法", "对不起，我做不到",
         ]
-        if any(marker in output for marker in hallucination_markers):
-            return ReflectionVerdict.HALLUCINATION
-
-        # 检测错误模式
-        error_markers = [
-            "错误", "失败", "error", "failed", "exception",
-            "traceback", "not found", "permission denied",
-        ]
-        if any(marker in output.lower() for marker in error_markers):
+        output_lower = output.lower()
+        if any(phrase in output_lower for phrase in true_failure_phrases):
             return ReflectionVerdict.FAILURE
 
-        # 检测部分完成
-        partial_markers = ["部分", "部分完成", "未完成", "还需"]
-        if any(marker in output for marker in partial_markers):
-            return ReflectionVerdict.PARTIAL
+        # 幻觉检测：蒙多在猜测而非确认
+        hallucination_phrases = [
+            "蒙多猜测", "蒙多假设", "如果蒙多没记错",
+            "蒙多不确定这是否正确", "可能是蒙多弄错了",
+        ]
+        if any(phrase in output for phrase in hallucination_phrases):
+            return ReflectionVerdict.HALLUCINATION
 
-        return ReflectionVerdict.SUCCESS
+        # 有效输出特征：有实质内容（代码、文件路径、命令结果、分析结论）
+        has_substance = (
+            len(output.strip()) >= 50
+            or "```" in output
+            or "/" in output  # 文件路径
+            or "def " in output
+            or "class " in output
+            or "import " in output
+            or "已完成" in output
+            or "已修复" in output
+            or "done" in output_lower
+            or "success" in output_lower
+            or "完成" in output
+        )
+
+        if has_substance:
+            return ReflectionVerdict.SUCCESS
+
+        # 短回复但有明确结论也算成功
+        if len(output.strip()) >= 20:
+            return ReflectionVerdict.SUCCESS
+
+        return ReflectionVerdict.PARTIAL
 
     def should_continue(self) -> bool:
-        """判断是否应该继续执行"""
-        if self._turn_count >= 10:
-            return False  # 防止无限循环
+        """判断是否应该继续执行
 
-        # 检查是否连续失败
-        recent = self.history[-3:] if len(self.history) >= 3 else self.history
-        if all(e.verdict == ReflectionVerdict.FAILURE for e in recent):
-            return False  # 连续失败，停止
+        v3.0.1: 大幅放宽限制 — 蒙多没做完不允许擅自停下
+        """
+        # 30 轮内必须继续（复杂任务需要足够空间）
+        if self._turn_count >= 30:
+            return False
+
+        # 连续 5 次真正失败才停止（之前是 3 次，误判率太高）
+        recent = self.history[-5:] if len(self.history) >= 5 else self.history
+        failure_count = sum(1 for e in recent if e.verdict == ReflectionVerdict.FAILURE)
+        if failure_count >= 5:
+            return False
 
         return True
 

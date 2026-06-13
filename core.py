@@ -391,8 +391,12 @@ class MundoEngine:
             delay = RETRY_DELAY * (2 ** attempt)
             time.sleep(delay)
             self.stats.retries_count += 1
-        else:
+        elif classified.get("category") == "auth":
+            # 只有认证错误才是真正的致命错误
             self._interrupted = True
+        else:
+            # 非致命错误：记录但不中断，让 _run_loop 决定是否继续
+            self.stats.retries_count += 1
 
     def _update_token_stats(self, msg: Dict):
         usage = msg.get("_usage", {})
@@ -487,11 +491,11 @@ class MundoEngine:
 
             guard_decision = self.tool_guard.observe(name, args, str(output), is_error=False)
             if guard_decision.action == GuardAction.HALT:
-                self._interrupted = True
+                # v3.0.1: HALT 不再直接中断引擎，降级为警告 + 注入提示
                 self.messages.append({
                     "role": "tool",
                     "tool_call_id": tc.get("id", ""),
-                    "content": guard_decision.message
+                    "content": guard_decision.message + "\n[提示] 工具循环防护建议换策略，但蒙多可以继续执行。"
                 })
                 return
             if guard_decision.action in (GuardAction.WARN, GuardAction.BLOCK):
@@ -506,7 +510,8 @@ class MundoEngine:
             duration = (time.time() - tool_start) * 1000
             guard_decision = self.tool_guard.observe(name, args, str(e), is_error=True)
             if guard_decision.action == GuardAction.HALT:
-                self._interrupted = True
+                # v3.0.1: 错误 HALT 也不中断引擎
+                pass
 
             # v3.0.0: 智能错误恢复
             self._handle_tool_error_with_recovery(tc, name, args, e, duration)
@@ -591,6 +596,7 @@ class MundoEngine:
         self.reflection.reset()
         self._interrupted = False
         self._use_streaming = self.adapter.profile.supports_streaming
+        self._slack_count = 0
         self._install_signal_handler()
 
         # v3.0.0: 安全验证
@@ -684,6 +690,10 @@ class MundoEngine:
             llm_start = time.time()
             assistant_msg = self._call_llm()
             if assistant_msg is None:
+                # v3.0.1: LLM 返回 None 不直接放弃，尝试恢复
+                if self._consecutive_errors < 5:
+                    time.sleep(2)
+                    continue  # 再试一轮
                 break
             self.stats.llm_time += time.time() - llm_start
 
@@ -711,8 +721,12 @@ class MundoEngine:
                     lessons=[],
                 ))
 
-                # 反摸鱼检测
+                # 反摸鱼检测（最多触发 3 次，避免死循环）
                 if total_tools_across_all_turns == 0 and len(final_text.strip()) < 50:
+                    slack_count = getattr(self, '_slack_count', 0)
+                    if slack_count >= 3:
+                        return final_text or "蒙多执行完毕。"
+                    self._slack_count = slack_count + 1
                     self.messages.append({"role": "assistant", "content": final_text})
                     self.messages.append({
                         "role": "system",
@@ -771,9 +785,16 @@ class MundoEngine:
         return hashlib.md5("".join(recent).encode()).hexdigest()
 
     def _handle_loop_end(self, turns: int = 0) -> str:
-        """帝皇汇报 — v3.0.0 包含反射总结"""
+        """帝皇汇报 — v3.0.1 无条件输出已完成的工作"""
         if self._interrupted:
-            return "蒙多被中断。已完成的部分如上所示。"
+            # 即使被中断，也输出已完成的工作
+            tool_outputs = []
+            for msg in self.messages[-10:]:
+                if msg.get("role") == "tool":
+                    tool_outputs.append(msg.get("content", "")[:500])
+            if tool_outputs:
+                return "蒙多被中断，但已完成的部分：\n" + "\n".join(tool_outputs[-5:])
+            return "蒙多被中断。"
         if self._same_error_streak >= STUCK_THRESHOLD:
             return f"工具 {self._last_error_tool} 连续失败 {self._same_error_streak} 次。蒙多已尽力，建议检查工具可用性。"
         if self._consecutive_errors >= 5:
