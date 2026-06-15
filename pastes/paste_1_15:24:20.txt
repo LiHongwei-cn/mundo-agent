@@ -1,0 +1,29 @@
+
+Xiaomi MiMo	
+API 开放平台
+
+HELLO, I'M MiMo
+您好，
+
+已为您开通 MiMo-V2.5-Pro-UltraSpeed 体验权限！
+释放满血性能，1T 模型生成速度高达 1000 tokens/s。专为高并发实时对话、实时场景生成、超大项目实时修改等高阶需求而生。
+
+可任选两种方式体验：
+在线体验 (打开即用)： https://ultraspeed.xiaomimimo.com
+
+API 接入 (集成应用)： https://platform.xiaomimimo.com/docs/zh-CN/model-intro/mimo-v2.5-pro-ultraspeed
+
+· 在平台创建新 Key 或沿用已有 Key 均可。
+
+· 模型 ID: mimo-v2.5-pro-ultraspeed
+
+温馨提示：为保证更多用户都能体验，高峰时段您可能遇到流量控制、排队等情况；如遇到，请稍等片刻再试。
+
+—— Xiaomi MiMo 开放平台
+
+Xiaomi MiMo 开放平台
+
+官网   ·   文档
+
+此邮件由系统自动发送  ·  © 2026 Xiaomi
+

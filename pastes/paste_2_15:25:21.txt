@@ -1,0 +1,1 @@
+[1: 30行 0.5KB → /Users/huangpeng/.hermes/mundo-agent/pastes/paste_1_15:24:20.txt]我已经得到小米这个模型的测试资格了，按要求对我电脑里面的蒙多agent，Claude code和Hermes agent进行配置，apikey：tp-ch6bb17akhadnb4lyc24vt8lxgq141cj8bttyz5auy55bvac

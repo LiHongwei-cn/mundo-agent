@@ -1,0 +1,6 @@
+[2: 1行 0.2KB → /Users/huangpeng/.hermes/mundo-agent/pastes/paste_2_15:25:21.txt]专属 Base URL
+
+兼容 OpenAI 接口协议：
+https://token-plan-cn.xiaomimimo.com/v1
+兼容 Anthropic 接口协议：
+https://token-plan-cn.xiaomimimo.com/anthropic
