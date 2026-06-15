@@ -1,7 +1,6 @@
-"""蒙多常量 v2.2.3 — 所有魔法数字的家
+"""蒙多常量 v2.2.4 — 所有魔法数字的家
 
 一处定义，全局引用。零硬编码散落。
-配置优先从 config/settings.json 读取，此处为默认值。
 """
 
 from pathlib import Path
@@ -18,21 +17,20 @@ TIMELINE_DB = MUNDO_HOME / "timeline.db"
 HISTORY_FILE = MUNDO_HOME / ".mundo_history"
 SETUP_FLAG = MUNDO_HOME / ".setup_complete"
 ENV_FILE = MUNDO_HOME / ".env"
-CONFIG_DIR = MUNDO_HOME / "config"
-CONFIG_FILE = CONFIG_DIR / "settings.json"
+CONFIG_FILE = MUNDO_HOME / "config.json"
 
 # ═══════════════════════════════════════════════
-# 版本 — 单一来源
+# 版本
 # ═══════════════════════════════════════════════
 
-VERSION = "v2.2.3"
+VERSION = "2.2.4"
 
 # ═══════════════════════════════════════════════
-# 默认模型（从 config/settings.json 覆盖）
+# 默认模型
 # ═══════════════════════════════════════════════
 
-DEFAULT_PROVIDER = "xiaomi"
-DEFAULT_MODEL = "mimo-v2.5-pro"
+DEFAULT_PROVIDER = "deepseek"
+DEFAULT_MODEL = "deepseek-chat"
 
 # ═══════════════════════════════════════════════
 # Token 估算
@@ -41,7 +39,7 @@ DEFAULT_MODEL = "mimo-v2.5-pro"
 CHAR_TO_TOKEN = 0.4
 
 # ═══════════════════════════════════════════════
-# 上下文窗口（默认值，从 config 覆盖）
+# 上下文窗口
 # ═══════════════════════════════════════════════
 
 CONTEXT_MAX_TOKENS = 128000
@@ -85,7 +83,7 @@ MAX_CONVERSATION_RESULTS = 5
 # 稳定性
 # ═══════════════════════════════════════════════
 
-STUCK_THRESHOLD = 5
+STUCK_THRESHOLD = 3
 MAX_RETRY = 3
 RETRY_DELAY = 2.0
 
@@ -93,29 +91,8 @@ RETRY_DELAY = 2.0
 # 帝皇决心
 # ═══════════════════════════════════════════════
 
-MAX_ITERATIONS = 80
-IDLE_TIMEOUT = 600
-LONG_TASK_THRESHOLD = 30
+MAX_ITERATIONS = 50
+IDLE_TIMEOUT = 300
+LONG_TASK_THRESHOLD = 20
 TASK_ABANDON_TIMEOUT = 1800
-PROGRESS_CHECK_INTERVAL = 10
-
-# ═══════════════════════════════════════════════
-# 反射引擎
-# ═══════════════════════════════════════════════
-
-REFLECTION_MAX_TURNS = 30
-REFLECTION_SUCCESS_THRESHOLD = 0.6
-
-# ═══════════════════════════════════════════════
-# 安全强化
-# ═══════════════════════════════════════════════
-
-SECURITY_RATE_LIMIT_PER_MINUTE = 60
-SECURITY_MAX_INPUT_LENGTH = 100000
-
-# ═══════════════════════════════════════════════
-# 知识检索
-# ═══════════════════════════════════════════════
-
-KNOWLEDGE_MAX_CONTEXT_CHARS = 3000
-KNOWLEDGE_SEARCH_TOP_K = 5
+PROGRESS_CHECK_INTERVAL = 5

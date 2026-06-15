@@ -1,4 +1,4 @@
-"""蒙多 Codex 集成 v2.1.0 — 自动路由到 OpenAI 兼容端点
+"""蒙多 Codex 集成 v2.2.4 — 自动路由到 OpenAI 兼容端点
 
 适配版本：Codex v0.138.0+
 保持配置：xiaomi/mimo-v2.5-pro
@@ -24,8 +24,8 @@ class CodexAgent:
     def is_available(self) -> bool:
         return self.cmd is not None
 
-    def exec_full_auto(self, prompt: str, workdir: str = None, timeout: int = 120) -> str:
-        """全自动模式执行 Codex — 超时120s，失败后降级到Claude Code"""
+    def exec_full_auto(self, prompt: str, workdir: str = None, timeout: int = 20) -> str:
+        """全自动模式执行 Codex — 超时限制 20s 完成重试后降级"""
         if not self.is_available():
             return "[Codex 未安装]"
 

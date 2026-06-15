@@ -81,7 +81,7 @@ class HermesAgent:
         self,
         prompt: str,
         model: Optional[str] = None,
-        provider: Optional[str] = "xiaomi",
+        provider: Optional[str] = None,
         toolsets: Optional[str] = None,
         skills: Optional[str] = None,
         timeout: int = 300,

@@ -2,12 +2,10 @@
 import warnings
 warnings.filterwarnings("ignore", message="urllib3 v2 only")
 """
-MUNDO Agent v2.2.3 — THE EMPEROR
+MUNDO Agent v2.2.0 — THE EMPEROR
 独立 AI Agent：LLM 直连 + 工具调用 + Agentic Loop + 权限审批
 融合 Hermes Agent + Claude Code 精华架构
 Rich 渲染所有输出，prompt_toolkit 只管输入
-
-v2.2.3: 修复路径问题 — 确保工作目录和 sys.path 正确设置
 """
 
 import os
@@ -17,58 +15,42 @@ from pathlib import Path
 from typing import Optional
 import uuid
 
-# v2.2.1: 先设置路径，再导入其他模块
 MUNDO_HOME = Path.home() / ".hermes" / "mundo-agent"
 VENV_DIR = MUNDO_HOME / "venv"
 
-# 确保 MUNDO_HOME 在 sys.path 中（解决模块导入问题）
-if str(MUNDO_HOME) not in sys.path:
-    sys.path.insert(0, str(MUNDO_HOME))
-
-# 确保当前工作目录是 MUNDO_HOME（解决相对路径问题）
-os.chdir(MUNDO_HOME)
-
 def ensure_venv():
-    """确保在虚拟环境中运行，跨平台兼容（macOS/Linux/Windows）
-
-    v2.2.3: 修复路径问题 — 保留工作目录和 sys.path
-    """
+    """确保在虚拟环境中运行，跨平台兼容（macOS/Linux/Windows）"""
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         return True  # 已在虚拟环境中
-
+    
     # Windows: Scripts/python.exe | macOS/Linux: bin/python3
     if sys.platform == "win32":
         venv_python = VENV_DIR / "Scripts" / "python.exe"
     else:
         venv_python = VENV_DIR / "bin" / "python3"
-
+    
     if not venv_python.exists():
         print("首次运行，正在安装虚拟环境...")
         subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
-        subprocess.run([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"],
+        subprocess.run([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], 
                       capture_output=True, check=True)
         # 安装依赖
         requirements = MUNDO_HOME / "requirements.txt"
         if requirements.exists():
-            subprocess.run([str(venv_python), "-m", "pip", "install", "-r", str(requirements)],
+            subprocess.run([str(venv_python), "-m", "pip", "install", "-r", str(requirements)], 
                           capture_output=True, check=True)
-
-    # v2.2.1: 在虚拟环境中重新启动自己，保留工作目录
+    
+    # 在虚拟环境中重新启动自己（Windows不支持os.execv）
     if sys.platform == "win32":
-        result = subprocess.run([str(venv_python)] + sys.argv, cwd=str(MUNDO_HOME))
+        result = subprocess.run([str(venv_python)] + sys.argv)
         sys.exit(result.returncode)
     else:
-        # 保留当前工作目录
-        os.chdir(MUNDO_HOME)
         os.execv(str(venv_python), [str(venv_python)] + sys.argv)
 
 # 确保在虚拟环境中运行
 ensure_venv()
 
-# v2.2.1: 再次确保路径正确（venv 重启后可能丢失）
-if str(MUNDO_HOME) not in sys.path:
-    sys.path.insert(0, str(MUNDO_HOME))
-os.chdir(MUNDO_HOME)
+sys.path.insert(0, str(Path(__file__).parent))
 
 from core import MundoEngine
 from llm import get_available_providers
@@ -78,15 +60,14 @@ from setup import (
     is_setup_done, run_setup, load_local_env,
     get_saved_provider, get_saved_model, add_provider_interactive,
 )
-from policy import get_policy_engine
+from approval import approve_tool_call
 from display import TaskConsole, console
 
 from constants import VERSION
 
 
 def safe_execute_tool(name: str, args: dict) -> str:
-    policy = get_policy_engine()
-    if not policy.approve_tool_call(name, args):
+    if not approve_tool_call(name, args):
         return "[用户拒绝执行此操作]"
     return raw_execute_tool(name, args)
 
@@ -163,7 +144,7 @@ class MundoCLI:
         self.engine.on_budget_warn = lambda budget: self.console.log_budget_warning(budget)
         self.engine.on_compress = lambda *a: self.console.log_compress(*a)
 
-        # v2.1.1: 实时 token 统计 + 缓存命中率
+        # v2.2.0: 实时 token 统计 + 缓存命中率
         self.engine.on_llm_stats = lambda prompt, completion, cached, ctx: self.console.log_llm_stats(prompt, completion, cached, ctx)
 
     def _init_memory(self):
@@ -180,18 +161,14 @@ class MundoCLI:
             url = "https://raw.githubusercontent.com/LiHongwei-cn/lihongwei-cn/main/mundo-agent/version.txt"
             req = urllib.request.Request(url, headers={"User-Agent": "mundo-agent"})
             with urllib.request.urlopen(req, timeout=3) as resp:
-                version = resp.read().decode().strip()
-                # 统一格式：确保带 v 前缀
-                if not version.startswith('v'):
-                    version = 'v' + version
-                return version
+                return resp.read().decode().strip()
         except Exception:
             return VERSION
 
     def show_banner(self):
         model_disp = self._model_display()
         self.console.init_screen(f"{self.provider}/{model_disp}", VERSION)
-        console.print(f"\n[gold]  MUNDO[/] [dim]{VERSION} · {model_disp}[/]")
+        console.print(f"\n[gold]  MUNDO[/] [dim]v{VERSION} · {model_disp}[/]")
 
         # 启动时检查版本更新
         latest = self._check_latest_version()
@@ -563,13 +540,7 @@ class MundoCLI:
 
     def process_command(self, line: str) -> bool:
         if line.startswith("!"):
-            cmd = line[1:].strip()
-            if cmd:
-                policy = get_policy_engine()
-                if policy.approve_tool_call("terminal", {"command": cmd}):
-                    os.system(cmd)
-                else:
-                    console.print("  [dim]命令已取消[/]")
+            os.system(line[1:])
             return True
         if not line.startswith("/"):
             return False
@@ -702,7 +673,7 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print(f"MUNDO Agent {VERSION}")
+        print(f"MUNDO Agent v{VERSION}")
         return
 
     cli = MundoCLI(provider=args.provider, model=args.model)

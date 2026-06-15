@@ -1,4 +1,4 @@
-"""蒙多上下文分块映射 v2.1.1 — 皇帝的奏折管理
+"""蒙多上下文分块映射 v2.2.4 — 皇帝的奏折管理
 
 智能上下文窗口管理。不是简单的截断，是语义感知的分块。
 每个消息块有优先级、类型、新鲜度。淘汰时按优先级排序。
@@ -81,11 +81,6 @@ class ContextMapper:
     @property
     def usage_ratio(self) -> float:
         return self.total_tokens / self._budget.usable_tokens
-
-    @property
-    def chunk_count(self) -> int:
-        """v2.2.0: 公开的 chunk 计数属性（避免访问私有 _chunks）"""
-        return len(self._chunks)
 
     def add(self, content: str, chunk_type: ChunkType,
             priority: EvictionPriority = EvictionPriority.EVICT_FIRST,

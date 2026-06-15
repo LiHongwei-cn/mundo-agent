@@ -1,4 +1,4 @@
-"""蒙多 Runtime 定制 v2.1.1 — 皇帝的宫殿蓝图
+"""蒙多 Runtime 定制 v2.2.4 — 皇帝的宫殿蓝图
 
 可配置的运行时。不是硬编码。是声明式配置。
 所有行为都可以通过配置覆盖，不需要改代码。
@@ -173,7 +173,7 @@ class RuntimeConfig:
 class ConfigManager:
     """配置管理器 — 分层加载、热重载"""
 
-    GLOBAL_PATH = Path.home() / ".hermes" / "mundo-agent" / "config" / "settings.json"
+    GLOBAL_PATH = Path.home() / ".hermes" / "mundo-agent" / "config.json"
     PROJECT_PATH = Path.cwd() / ".mundo" / "config.json"
 
     def __init__(self):

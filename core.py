@@ -1,20 +1,17 @@
-"""蒙多核心引擎 v3.0.0 — 脱胎换骨
+"""蒙多核心引擎 v2.2.4 — Agentic Loop
 
-v3.0.0 架构升级（基于 AI Agent/网安/RAG 专业知识）：
-- 反射循环：先思考→再执行→再检查→再修复
-- 安全强化：输入验证/输出消毒/注入防护
-- 智能错误恢复：根据错误类型自适应策略
-- RAG 知识检索：语义级知识召回
-- 工作流集成：复杂任务自动分解为阶段
-
-不是堆功能。是让蒙多学会"三思而后行"。
+v2.2.4 优化（学习 Hermes/Claude 精华）：
+- 懒加载模块，减少启动时间
+- 缓存系统提示词和工具 schema
+- 并行执行独立工具调用
+- 智能消息压缩
+- 快速响应检测
 """
 
 import sys
 import json
 import time
 import signal
-import hashlib
 from typing import List, Dict, Optional, Callable, Tuple
 from llm import LLMClient, repair_json, _is_timeout_error
 from constants import (
@@ -23,7 +20,6 @@ from constants import (
     BUDGET_MAX_PROMPT, BUDGET_MAX_COMPLETION, BUDGET_WARN_THRESHOLD,
     STUCK_THRESHOLD, IDLE_TIMEOUT, MAX_RETRY, RETRY_DELAY,
     MAX_ITERATIONS, TOOL_MAX_OUTPUT, STREAM_MAX_WAIT,
-    REFLECTION_MAX_TURNS, KNOWLEDGE_MAX_CONTEXT_CHARS,
 )
 from policy import get_policy_engine, PolicyContext, Action
 from events import get_event_bus, EventType, Priority
@@ -43,17 +39,14 @@ from performance_optimizer import (
     get_cache, can_parallelize, execute_tools_parallel,
     MessageCompressor, is_simple_query, get_fast_response_config,
 )
-from reflection_engine import (
-    get_reflection_engine, get_strategy_selector,
-    Phase as ReflectionPhase, ReflectionVerdict, ReflectionEntry,
-)
-from security_hardening import get_security
-from intelligent_recovery import (
-    get_recovery, get_compressor,
-    ErrorCategory, RecoveryStrategy,
-)
-from knowledge_retriever import get_knowledge_retriever
-from workflow import WorkflowEngine, PhaseStatus
+
+
+# ═══════════════════════════════════════════════
+# System Prompt — 精简版，省 token
+# ═══════════════════════════════════════════════
+
+# System prompt 现在由 prompt_assembler.py 模块化组装
+MUNDO_SYSTEM_PROMPT = None  # 已迁移到 prompt_assembler.build_system_prompt()
 
 
 # ═══════════════════════════════════════════════
@@ -64,6 +57,7 @@ def _classify_error(error: Exception, raw_msg: str) -> Dict:
     msg = raw_msg.lower()
     result = {"category": "unknown", "retryable": False, "user_tip": "", "log_detail": raw_msg}
 
+    # 连接重置
     if isinstance(error, (ConnectionResetError, ConnectionRefusedError, BrokenPipeError)):
         result.update(category="connection", retryable=True, user_tip="连接被中断，正在重试…")
         return result
@@ -71,22 +65,27 @@ def _classify_error(error: Exception, raw_msg: str) -> Dict:
         result.update(category="connection", retryable=True, user_tip="连接被中断，正在重试…")
         return result
 
+    # DNS/网络
     if "dns" in msg or "connection refused" in msg:
         result.update(category="network", retryable=True, user_tip="无法连接到模型服务。请检查网络。")
         return result
 
+    # 超时
     if _is_timeout_error(error) or "timeout" in msg or "超时" in raw_msg:
         result.update(category="timeout", retryable=True, user_tip="请求超时。模型可能繁忙，正在重试…")
         return result
 
+    # API key
     if any(kw in msg for kw in ["401", "unauthorized", "invalid api key", "api key"]):
         result.update(category="auth", user_tip="API key 无效或已过期。运行 /setup 更新。")
         return result
 
+    # 限速
     if any(kw in msg for kw in ["429", "rate limit", "too many"]):
         result.update(category="rate_limit", retryable=True, user_tip="请求过于频繁，稍后重试…")
         return result
 
+    # 服务器错误
     if any(kw in msg for kw in ["500", "502", "503", "504", "internal server"]):
         result.update(category="server", retryable=True, user_tip="模型服务暂时不可用，正在重试…")
         return result
@@ -163,8 +162,6 @@ class TaskStats:
         self.tool_time = 0.0
         self.errors_count = 0
         self.retries_count = 0
-        self.reflection_count = 0
-        self.recovery_count = 0
 
     @property
     def elapsed(self):
@@ -184,47 +181,33 @@ class TaskStats:
 # ═══════════════════════════════════════════════
 
 class MundoEngine:
-    """蒙多核心引擎 v3.0.0 — 脱胎换骨
-
-    v2.2.0 改进：
-    - 添加上下文管理器协议（__enter__/__exit__）
-    - 使用 threading.Event 替代 bool 标志
-    - 保留和恢复信号处理器
-    - 修复 is_safe 检查
-    - 修复 dead code (_use_reasoning_effort)
-    - 修复 _slack_count 初始化
-    - 修复 _auto_compress chunk 计数
-    - 修复 cache key 包含 knowledge_context
-    - 修复 progress hash 包含 assistant 消息
-    """
+    # 从 constants.py 读取，不再硬编码
 
     def __init__(self, provider="deepseek", model=None):
+        # 智能模型选择：根据provider自动选择最优模型
         if model is None:
             model = SmartModelSelector.select_model(provider, TaskType.GENERAL)
-
+        
         self.client = LLMClient(provider=provider, model=model)
         self.provider = provider
         self.model_name = model or self.client.model
-
+        
+        # 模型适配器 — 根据模型特性自动优化
         self.adapter = get_model_adapter(self.model_name)
+        
+        # 自动适配器
         self.auto_adapter = AutoAdapter()
-
+        
         self.messages: List[Dict] = []
         self.max_tokens_override = self.adapter.profile.max_tokens_default
         self.stats = TaskStats()
         self.budget = IterationBudget()
         self._use_streaming = self.adapter.profile.supports_streaming
-        self._use_reasoning_effort: Optional[str] = None  # v2.2.0: 初始化
-        self._slack_count: int = 0  # v2.2.0: 初始化到 __init__
+        self._interrupted = False
         self._consecutive_errors = 0
         self._last_error_tool = ""
         self._same_error_streak = 0
         self._last_activity_time = time.time()
-
-        # v2.2.0: 使用 threading.Event 替代 bool（线程安全）
-        import threading
-        self._interrupted = threading.Event()
-        self._old_signal_handler = None  # 保存旧的信号处理器
 
         # 基础设施
         self.policy = get_policy_engine()
@@ -234,23 +217,11 @@ class MundoEngine:
         self.sandbox = get_sandbox()
         self.config = get_config()
 
-        # 工具循环防护
+        # 工具循环防护（从 Hermes Agent 提炼）
         self.tool_guard = ToolGuardController()
-
+        
         # 上下文映射器
         self._context = ContextMapper(ContextBudget(max_tokens=CONTEXT_MAX_TOKENS))
-
-        # v3.0.0: 新模块
-        self.reflection = get_reflection_engine()
-        self.security = get_security()
-        self.recovery = get_recovery()
-        self.compressor = get_compressor()
-        self.knowledge = get_knowledge_retriever()
-        self.workflow = WorkflowEngine()
-
-        # v2.2.0: 共享线程池（避免每次工具调用创建新线程池）
-        from concurrent.futures import ThreadPoolExecutor
-        self._tool_executor = ThreadPoolExecutor(max_workers=2)
 
         # 回调
         self.on_turn_start = None
@@ -265,39 +236,11 @@ class MundoEngine:
         self.on_compress = None
         self.on_llm_stats = None
 
-    def __enter__(self):
-        """上下文管理器入口"""
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """上下文管理器出口 — 清理资源"""
-        self.close()
-        return False
-
-    def close(self):
-        """清理资源：关闭线程池，恢复信号处理器"""
-        if hasattr(self, '_tool_executor') and self._tool_executor:
-            self._tool_executor.shutdown(wait=False)
-        # 恢复旧的信号处理器
-        if self._old_signal_handler is not None:
-            import signal
-            signal.signal(signal.SIGINT, self._old_signal_handler)
-            self._old_signal_handler = None
-
-    def _build_system_message(self, memory_context: str = "", knowledge_context: str = "") -> Dict:
-        """构建 system message — 模块化组装 + 缓存优化
-
-        v2.2.0: 将内存上下文和知识上下文合并到主 system message 中，
-        避免绕过前缀缓存。
-        """
+    def _build_system_message(self):
+        """构建 system message — 模块化组装 + 缓存优化"""
         cache = get_cache()
-        # v2.2.0: 缓存键包含 memory + knowledge hash，确保缓存失效正确
-        combined = f"{memory_context}:{knowledge_context}"
-        context_hash = hashlib.md5(combined.encode()).hexdigest()[:12] if combined.strip() else ""
-        cache_key = f"{self.provider}/{self.model_name}/{context_hash}"
-
         content = cache.get_system_prompt(
-            self.provider, cache_key,
+            self.provider, self.model_name,
             lambda: build_system_prompt(
                 model_adapter=self.adapter,
                 quark_optimizer=True,
@@ -305,50 +248,56 @@ class MundoEngine:
                 model_name=self.model_name,
             )
         )
-
-        # 合并内存上下文和知识上下文
-        if memory_context or knowledge_context:
-            parts = [content]
-            if knowledge_context:
-                parts.append(f"\n[相关知识]\n{knowledge_context}")
-            if memory_context:
-                parts.append(f"\n[记忆上下文]\n{memory_context}")
-            content = "\n".join(parts)
-
         return {"role": "system", "content": content}
 
     def _model_display(self):
         return f"{self.provider}/{self.model_name}"
-
+    
     def switch_model_for_task(self, task_description: str):
+        """根据任务描述智能切换模型"""
         task_type = SmartModelSelector.detect_task_type(task_description)
         optimal_model = SmartModelSelector.select_model(self.provider, task_type)
+        
         if optimal_model and optimal_model != self.model_name:
             self.model_name = optimal_model
             self.adapter = get_model_adapter(optimal_model)
             self.max_tokens_override = self.adapter.profile.max_tokens_default
             return True
         return False
+    
+    def generate_task_plan(self, task_description: str) -> str:
+        """生成任务执行计划文档"""
+        plan = TaskPlanner.generate_plan(task_description, self.provider)
+        return TaskPlanner.format_plan_document(plan)
+    
+    def get_optimal_model_for_step(self, step_info: Dict) -> Tuple[str, str]:
+        """为执行步骤获取最优模型"""
+        return MultiModelCoordinator.select_best_model(
+            step_info.get("task_type", "general"),
+            [self.provider],
+        )
 
     def _auto_compress(self):
         if not self._context.should_compress():
             return
         old_tokens = self._context.total_tokens
-        # v2.2.0: 修复 chunk 计数 — 在压缩前捕获旧数量
-        old_chunks = self._context.chunk_count
         new_tokens = self._context.compress()[1]
-        new_chunks = self._context.chunk_count
         if self.on_compress:
-            self.on_compress(old_chunks, new_chunks, old_tokens, new_tokens)
+            self.on_compress(len(self._context._chunks), len(self._context._chunks), old_tokens, new_tokens)
 
     def _detect_reasoning_effort(self) -> Optional[str]:
+        """根据阶段自动选择推理深度
+
+        策略：首轮 low 快速理解任务，执行阶段默认深度保质量
+        """
         if not self.adapter.profile.supports_reasoning:
             return None
-        # v2.2.0: 读取 _use_reasoning_effort（之前设置但从未读取）
-        if self._use_reasoning_effort:
-            return self._use_reasoning_effort
+
+        # 首轮（还没执行过工具）→ low 快速理解
         if self.stats.tool_calls_count == 0:
             return "low"
+
+        # 已开始执行工具 → 默认深度保证执行质量
         return None
 
     def _accumulate_stream(self, stream_iter) -> Dict:
@@ -400,25 +349,28 @@ class MundoEngine:
                     self._consecutive_errors = 0
                     return result
             except KeyboardInterrupt:
-                self._interrupted.set()  # v2.2.0: 使用 threading.Event
+                self._interrupted = True
                 return None
             except Exception as e:
                 self._handle_llm_error(e, attempt)
-                if self._interrupted.is_set():  # v2.2.0: 使用 threading.Event
+                if self._interrupted:
                     return None
         return None
 
     def _try_call_llm(self, attempt: int) -> Optional[Dict]:
         messages = self._prepare_messages()
         max_tokens = self.max_tokens_override
-
+        
+        # 获取工具 schema
         import tools as tool_module
         tool_schemas = tool_module.registry.schemas if hasattr(tool_module, 'registry') else []
 
+        # 推理预算：简单任务用 low 减少推理 token
         effort = self._detect_reasoning_effort()
 
         if self._use_streaming:
             try:
+                # 夸克级工具 schema 优化
                 quark_schemas = ModelOptimizerFactory.optimize_tools(self.provider, tool_schemas)
                 optimized_schemas = self.adapter.optimize_tool_schemas(quark_schemas)
                 stream = self.client.chat_stream(messages, tools=optimized_schemas,
@@ -430,11 +382,10 @@ class MundoEngine:
                     self.on_stream_end(self.stats.turns)
                 return result
             except Exception as e:
-                # v2.2.0: 修复 streaming fallback — 递增 attempt 防止无限递归
                 if attempt == 0:
                     self._use_streaming = False
                     self.stats.retries_count += 1
-                    return self._try_call_llm(attempt + 1)  # 递增 attempt
+                    return self._try_call_llm(attempt)
                 raise
         else:
             return self.client.chat(messages, tools=tool_schemas,
@@ -458,18 +409,8 @@ class MundoEngine:
             delay = RETRY_DELAY * (2 ** attempt)
             time.sleep(delay)
             self.stats.retries_count += 1
-        elif classified.get("category") == "auth":
-            # 认证错误：致命，立即中断
-            self._interrupted.set()  # v2.2.0: 使用 threading.Event
         else:
-            # 非致命错误：添加退避睡眠，连续5次后中断
-            self.stats.retries_count += 1
-            if self._consecutive_errors >= 5:
-                self._interrupted.set()  # v2.2.0: 使用 threading.Event
-            else:
-                # 退避睡眠：连续错误越多，等待越久
-                backoff = min(RETRY_DELAY * (2 ** self._consecutive_errors), 30.0)
-                time.sleep(backoff)
+            self._interrupted = True
 
     def _update_token_stats(self, msg: Dict):
         usage = msg.get("_usage", {})
@@ -490,21 +431,20 @@ class MundoEngine:
 
     def _execute_tool_calls(self, tool_calls: list):
         import tools as tool_module
+        # 解析工具调用为 DispatchToolCall 格式
         calls = []
         for tc in tool_calls:
-            if self._interrupted.is_set():  # v2.2.0: 使用 threading.Event
+            if self._interrupted:
                 break
             fn = tc.get("function", {})
             name = fn.get("name", "")
             try:
                 args = json.loads(fn.get("arguments", "{}"))
             except json.JSONDecodeError:
-                # v2.2.0: 记录 JSON 解析失败，而不是静默忽略
-                if self.on_tool_output:
-                    self.on_tool_output("warning", f"工具参数 JSON 解析失败: {fn.get('arguments', '')[:100]}", True)
                 args = {}
             calls.append((tc, name, args))
 
+        # 智能分发：并行或串行
         dispatch_calls = [
             DispatchToolCall(id=tc.get("id", ""), name=name, args=args)
             for tc, name, args in calls
@@ -513,85 +453,69 @@ class MundoEngine:
         def _executor(name: str, args: dict) -> str:
             return tool_module.execute_tool(name, args)
 
+        # 检查是否可以并行（多个工具调用时）
         if len(dispatch_calls) > 1:
             results = dispatch(dispatch_calls, _executor)
             for (tc, name, args), result in zip(calls, results):
                 self._handle_tool_result(tc, name, args, result.output, result.is_error, result.elapsed)
         else:
             for tc, name, args in calls:
-                if self._interrupted.is_set():  # v2.2.0: 使用 threading.Event
+                if self._interrupted:
                     break
                 self._execute_single_tool(tc, name, args, tool_module)
 
     def _execute_single_tool(self, tc, name: str, args: dict, tool_module):
-        """执行单个工具调用 — v3.0.0 集成安全检查和智能恢复"""
-
-        # v3.0.0: 安全检查
-        security_result = self.security.validate_tool_call(name, args)
-        if not security_result.is_valid:
-            self.messages.append({
-                "role": "tool",
-                "tool_call_id": tc.get("id", ""),
-                "content": f"[安全拒绝] {', '.join(security_result.threats)}"
-            })
-            return
-
+        """执行单个工具调用（带策略检查+循环防护+超时保护）"""
         # 策略检查
         policy_result = self.policy.evaluate_tool(name, args)
         if policy_result.is_denied:
-            self.messages.append({
-                "role": "tool",
-                "tool_call_id": tc.get("id", ""),
-                "content": f"[策略拒绝] {policy_result.reason}"
-            })
+            self.messages.append({"role": "tool", "tool_call_id": tc.get("id", ""), "content": f"[策略拒绝] {policy_result.reason}"})
             return
 
         if self.on_tool_call:
             self.on_tool_call(name, args, self.stats)
 
         tool_start = time.time()
+        # delegate_agent 需要调用外部 agent，超时设为 600 秒
         LONG_TIMEOUT_TOOLS = {"delegate_agent"}
         TOOL_TIMEOUT = 600 if name in LONG_TIMEOUT_TOOLS else 30
 
         try:
-            from concurrent.futures import TimeoutError as FutureTimeout
-            future = self._tool_executor.submit(tool_module.execute_tool, name, args)
-            try:
-                output = future.result(timeout=TOOL_TIMEOUT)
-            except FutureTimeout:
-                output = f"[工具 {name} 执行超时（{TOOL_TIMEOUT}s）]"
-                future.cancel()
+            # 使用线程池执行工具，添加超时保护
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(tool_module.execute_tool, name, args)
+                try:
+                    output = future.result(timeout=TOOL_TIMEOUT)
+                except FutureTimeout:
+                    output = f"[工具 {name} 执行超时（{TOOL_TIMEOUT}s）]"
+                    future.cancel()
 
             duration = (time.time() - tool_start) * 1000
 
+            # 工具循环防护检查
             guard_decision = self.tool_guard.observe(name, args, str(output), is_error=False)
             if guard_decision.action == GuardAction.HALT:
-                # v3.0.1: HALT 不再直接中断引擎，降级为警告 + 注入提示
-                self.messages.append({
-                    "role": "tool",
-                    "tool_call_id": tc.get("id", ""),
-                    "content": guard_decision.message + "\n[提示] 工具循环防护建议换策略，但蒙多可以继续执行。"
-                })
+                self._interrupted = True
+                self.messages.append({"role": "tool", "tool_call_id": tc.get("id", ""), "content": guard_decision.message})
                 return
             if guard_decision.action in (GuardAction.WARN, GuardAction.BLOCK):
                 if self.on_tool_output:
                     self.on_tool_output("guard", guard_decision.message, True)
 
-            # v3.0.0: 输出消毒
-            sanitized_output = self.security.sanitize_output(str(output))
-            self._handle_tool_result(tc, name, args, sanitized_output, False, duration)
+            self._handle_tool_result(tc, name, args, str(output), False, duration)
 
         except Exception as e:
             duration = (time.time() - tool_start) * 1000
+            # 工具循环防护检查（错误时）
             guard_decision = self.tool_guard.observe(name, args, str(e), is_error=True)
             if guard_decision.action == GuardAction.HALT:
-                # v3.0.1: 错误 HALT 也不中断引擎
-                pass
+                self._interrupted = True
 
-            # v3.0.0: 智能错误恢复
-            self._handle_tool_error_with_recovery(tc, name, args, e, duration)
+            self._handle_tool_error(tc, name, args, e, duration)
 
     def _handle_tool_result(self, tc, name: str, args: dict, output: str, is_error: bool, duration: float):
+        """统一处理工具结果"""
         if is_error:
             self._handle_tool_error(tc, name, args, Exception(output), duration)
             return
@@ -601,11 +525,7 @@ class MundoEngine:
         self._consecutive_errors = 0
         self._same_error_streak = 0
 
-        self.messages.append({
-            "role": "tool",
-            "tool_call_id": tc.get("id", ""),
-            "content": str(output)[:TOOL_MAX_OUTPUT]
-        })
+        self.messages.append({"role": "tool", "tool_call_id": tc.get("id", ""), "content": str(output)[:TOOL_MAX_OUTPUT]})
         if self.on_tool_output:
             self.on_tool_output(name, str(output)[:500], False)
 
@@ -613,6 +533,7 @@ class MundoEngine:
         self.events.publish(EventType.TOOL_RESULT, {"tool": name, "duration_ms": duration}, "engine")
 
     def _handle_tool_error(self, tc, name: str, args: dict, error: Exception, duration: float):
+        """统一处理工具错误"""
         self._consecutive_errors += 1
         self.stats.errors_count += 1
         if name == self._last_error_tool:
@@ -623,41 +544,6 @@ class MundoEngine:
 
         error_msg = f"[工具错误] {name}: {error}"
         self.messages.append({"role": "tool", "tool_call_id": tc.get("id", ""), "content": error_msg})
-        if self.on_tool_output:
-            self.on_tool_output(name, str(error), True)
-
-        self.timeline.record_error(str(error), name)
-        self.events.publish(EventType.TOOL_ERROR, {"tool": name, "error": str(error)}, "engine")
-
-    def _handle_tool_error_with_recovery(self, tc, name: str, args: dict, error: Exception, duration: float):
-        """v3.0.0: 智能错误恢复"""
-        self._consecutive_errors += 1
-        self.stats.errors_count += 1
-        self.stats.recovery_count += 1
-
-        if name == self._last_error_tool:
-            self._same_error_streak += 1
-        else:
-            self._same_error_streak = 1
-            self._last_error_tool = name
-
-        # 分析错误类型
-        category, confidence = self.recovery.analyze_error(error, str(error))
-
-        # 获取恢复计划
-        plan = self.recovery.get_recovery_plan(category, self._same_error_streak)
-
-        # 记录错误
-        error_record = {
-            "tool": name,
-            "category": category.name,
-            "strategy": plan.strategy.value,
-            "confidence": confidence,
-        }
-
-        error_msg = f"[工具错误] {name}: {error}"
-        self.messages.append({"role": "tool", "tool_call_id": tc.get("id", ""), "content": error_msg})
-
         if self.on_tool_output:
             self.on_tool_output(name, str(error), True)
 
@@ -668,55 +554,31 @@ class MundoEngine:
         self.stats.reset()
         self.budget.reset()
         self.tool_guard.reset()
-        self.reflection.reset()
-        self._interrupted.clear()  # v2.2.0: 使用 threading.Event
+        self._interrupted = False
         self._use_streaming = self.adapter.profile.supports_streaming
-        self._use_reasoning_effort = None  # v2.2.0: 重置
-        self._slack_count = 0
         self._install_signal_handler()
 
-        # v3.0.0: 安全验证
-        is_safe, sanitized_input, warnings = self.security.validate_and_sanitize(user_input)
-        if warnings:
-            for warning in warnings:
-                if self.on_tool_output:
-                    self.on_tool_output("security", f"安全提示: {warning}", False)
-
-        # v2.2.0: 检查 is_safe 标志（之前被忽略）
-        if not is_safe:
-            return "[安全警告] 输入包含潜在不安全内容，已使用净化版本继续处理。"
-
-        # 快速响应检测
-        if is_simple_query(sanitized_input):
+        # 快速响应检测：简单问题跳过工具调用和深度推理
+        if is_simple_query(user_input):
             self._use_reasoning_effort = "low"
 
-        # 智能模型切换
-        self.switch_model_for_task(sanitized_input)
-
-        # v2.2.0: RAG 知识检索
-        knowledge_context = self.knowledge.get_context_for_query(sanitized_input)
+        # 智能模型切换：根据任务类型自动选择最优模型
+        self.switch_model_for_task(user_input)
 
         if not self.messages:
-            self.messages = [self._build_system_message(
-                memory_context=extra_context,
-                knowledge_context=knowledge_context,
-            )]
-        else:
-            # 如果已有消息，更新系统消息（合并上下文）
-            if self.messages and self.messages[0].get("role") == "system":
-                self.messages[0] = self._build_system_message(
-                    memory_context=extra_context,
-                    knowledge_context=knowledge_context,
-                )
+            self.messages = [self._build_system_message()]
 
-        # 智能消息压缩
+        # 智能消息压缩：使用 MessageCompressor
         self.messages = MessageCompressor.compress_messages(self.messages)
+
         self._auto_compress()
 
-        self.messages.append({"role": "user", "content": sanitized_input})
+        if extra_context:
+            self.messages.append({"role": "system", "content": f"[记忆上下文]\n{extra_context}"})
+        self.messages.append({"role": "user", "content": user_input})
 
-        turn_id = self.timeline.start_turn(sanitized_input)
-        self.events.publish(EventType.TURN_START, {"input": sanitized_input[:200]}, "engine")
+        turn_id = self.timeline.start_turn(user_input)
+        self.events.publish(EventType.TURN_START, {"input": user_input[:200]}, "engine")
 
         result = self._run_loop()
 
@@ -728,17 +590,17 @@ class MundoEngine:
         return result
 
     def _run_loop(self) -> str:
-        """v3.0.0: 反射循环 — 先思考→再执行→再检查→再修复"""
+        """帝皇决心循环：不完成不罢休。无时间限制，直到任务完成或用户中断。"""
         from constants import LONG_TASK_THRESHOLD, TASK_ABANDON_TIMEOUT, PROGRESS_CHECK_INTERVAL
 
         turn = 0
         last_progress_time = time.time()
         last_output_hash = ""
         total_tool_calls = 0
-        total_tools_across_all_turns = 0
 
         while turn < MAX_ITERATIONS:
-            if self._interrupted.is_set() or self.budget.exhausted:  # v2.2.0: 使用 threading.Event
+            # 用户中断检查（唯一的主动终止条件）
+            if self._interrupted or self.budget.exhausted:
                 break
 
             turn += 1
@@ -749,7 +611,7 @@ class MundoEngine:
                 if self.on_tool_output:
                     self.on_tool_output("mundo", "⚡ 任务复杂，蒙多加大力度。", False)
 
-            # 进度检查
+            # 进度检查：防止死循环
             if turn % PROGRESS_CHECK_INTERVAL == 0:
                 current_output = self._get_recent_output_hash()
                 if current_output == last_output_hash:
@@ -773,10 +635,6 @@ class MundoEngine:
             llm_start = time.time()
             assistant_msg = self._call_llm()
             if assistant_msg is None:
-                # v3.0.1: LLM 返回 None 不直接放弃，尝试恢复
-                if self._consecutive_errors < 5:
-                    time.sleep(2)
-                    continue  # 再试一轮
                 break
             self.stats.llm_time += time.time() - llm_start
 
@@ -791,47 +649,6 @@ class MundoEngine:
 
             if not tool_calls:
                 final_text = assistant_msg.get("content") or ""
-
-                # v3.0.0: 反射检查 — 检查输出质量
-                verdict = self.reflection.analyze_output(final_text)
-                self.reflection.record_reflection(ReflectionEntry(
-                    turn=turn,
-                    phase=ReflectionPhase.REFLECT,
-                    thought="检查最终输出质量",
-                    action="output_analysis",
-                    result=final_text[:500],
-                    verdict=verdict,
-                    lessons=[],
-                ))
-
-                # 反摸鱼检测（最多触发 3 次，避免死循环）
-                if total_tools_across_all_turns == 0 and len(final_text.strip()) < 50:
-                    slack_count = getattr(self, '_slack_count', 0)
-                    if slack_count >= 3:
-                        return final_text or "蒙多执行完毕。"
-                    self._slack_count = slack_count + 1
-                    self.messages.append({"role": "assistant", "content": final_text})
-                    self.messages.append({
-                        "role": "system",
-                        "content": "【帝皇斥责】蒙多，你在摸鱼！用户给了你任务，你没有调用任何工具就试图结束。"
-                                   "现在立刻开始执行：分析任务需求，调用合适的工具完成它。不允许空回复。"
-                    })
-                    if self.on_tool_output:
-                        self.on_tool_output("mundo", "⚡ 摸鱼检测触发：强制继续执行", False)
-                    total_tool_calls = 0
-                    continue
-
-                # 如果反射判定为失败，继续执行
-                if verdict == ReflectionVerdict.FAILURE and self.reflection.should_continue():
-                    self.messages.append({"role": "assistant", "content": final_text})
-                    hint = self.reflection.get_strategy_hint()
-                    self.messages.append({
-                        "role": "system",
-                        "content": f"【反射修正】上次结果不合格。{hint}\n请重新执行任务。"
-                    })
-                    self.stats.reflection_count += 1
-                    continue
-
                 self.messages.append({"role": "assistant", "content": final_text})
                 return final_text
 
@@ -842,9 +659,9 @@ class MundoEngine:
             })
             self._execute_tool_calls(tool_calls)
             total_tool_calls += len(tool_calls)
-            total_tools_across_all_turns += len(tool_calls)
 
             if self._same_error_streak >= STUCK_THRESHOLD:
+                # 换策略而非放弃
                 if self.on_tool_output:
                     self.on_tool_output("mundo", f"工具 {self._last_error_tool} 卡住，蒙多换路。", True)
                 self._same_error_streak = 0
@@ -856,44 +673,40 @@ class MundoEngine:
         return self._handle_loop_end(turn)
 
     def _force_complete(self) -> str:
+        """强制完成：当任务超时时，基于已有信息生成最终回复"""
+        # 收集所有工具输出作为上下文
         tool_outputs = []
         for msg in self.messages[-10:]:
             if msg.get("role") == "tool":
                 tool_outputs.append(msg.get("content", "")[:500])
+
+        # 生成总结性回复
         summary = "\n".join(tool_outputs[-5:]) if tool_outputs else "任务执行中..."
         return f"任务执行结果：\n{summary}"
 
     def _get_recent_output_hash(self) -> str:
-        # v2.2.0: 包含 assistant 消息，避免只检查 tool 输出导致误判
-        recent = [m.get("content", "") for m in self.messages[-5:]
-                  if m.get("role") in ("tool", "assistant") and m.get("content")]
+        """获取最近输出的哈希，用于进度检测"""
+        import hashlib
+        recent = [m.get("content", "") for m in self.messages[-5:] if m.get("role") == "tool"]
         return hashlib.md5("".join(recent).encode()).hexdigest()
 
     def _handle_loop_end(self, turns: int = 0) -> str:
-        """帝皇汇报 — v3.0.1 无条件输出已完成的工作"""
-        if self._interrupted.is_set():  # v2.2.0: 使用 threading.Event
-            # 即使被中断，也输出已完成的工作
-            tool_outputs = []
-            for msg in self.messages[-10:]:
-                if msg.get("role") == "tool":
-                    tool_outputs.append(msg.get("content", "")[:500])
-            if tool_outputs:
-                return "蒙多被中断，但已完成的部分：\n" + "\n".join(tool_outputs[-5:])
-            return "蒙多被中断。"
+        """帝皇汇报：完整呈现结果，不压缩不省略"""
+        if self._interrupted:
+            return "蒙多被中断。已完成的部分如上所示。"
         if self._same_error_streak >= STUCK_THRESHOLD:
             return f"工具 {self._last_error_tool} 连续失败 {self._same_error_streak} 次。蒙多已尽力，建议检查工具可用性。"
         if self._consecutive_errors >= 5:
             return "蒙多遇到连续错误，无法继续。已完成的部分如上所示。"
 
-        # v3.0.0: 生成反射总结
-        reflection_summary = self.reflection.get_reflection_summary()
-
+        # 长任务：追加详细总结
         if turns >= 20:
             self.messages.append({
                 "role": "user",
-                "content": f"请详细总结你刚才完成的所有工作。\n\n反射总结: {reflection_summary}"
+                "content": "请详细总结你刚才完成的所有工作，包括：\n1. 完成了哪些任务\n2. 每个任务的结果\n3. 遇到的问题和解决方案\n4. 后续建议（如有）\n\n不要省略任何细节。"
             })
         else:
+            # 短任务：一句话总结
             self.messages.append({"role": "user", "content": "请用一句话总结你刚才完成的工作。"})
 
         try:
@@ -902,25 +715,20 @@ class MundoEngine:
                 final = summary_msg["content"]
                 self.messages.append({"role": "assistant", "content": final})
                 return final
-        except Exception as e:
-            # v2.2.0: 记录异常而不是静默忽略
-            if self.on_tool_output:
-                self.on_tool_output("error", f"总结生成失败: {str(e)[:100]}", True)
+        except Exception:
+            pass
         return "蒙多执行完毕。用 /status 查看详情。"
 
     def _install_signal_handler(self):
-        """安装信号处理器 — v2.2.0: 保留旧处理器"""
         def handler(signum, frame):
-            self._interrupted.set()  # v2.2.0: 使用 threading.Event
-        # 保存旧的信号处理器，以便后续恢复
-        self._old_signal_handler = signal.signal(signal.SIGINT, handler)
+            self._interrupted = True
+        signal.signal(signal.SIGINT, handler)
 
     def reset(self):
         self.messages = []
         self.stats.reset()
         self.budget.reset()
         self.tool_guard.reset()
-        self.reflection.reset()
         self._context = ContextMapper(ContextBudget(max_tokens=CONTEXT_MAX_TOKENS))
 
     def compact(self):
