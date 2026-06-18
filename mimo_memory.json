@@ -5,23 +5,38 @@
     "timestamp": 1781373286.0355892
   },
   {
-    "content": "蒙多功能测试记忆条目 - 测试时间: 2025-01-01",
-    "type": "test",
-    "timestamp": 1781373600.0554209
+    "content": "系统检查开始时间: 2026-06-18 16:03，基础工具正常，网络连接超时",
+    "type": "system_check",
+    "timestamp": 1781769867.509654
   },
   {
-    "content": "蒙多功能测试记忆条目 - 测试时间: 2025-01-01",
-    "type": "fact",
-    "timestamp": 1781373635.393666
+    "content": "蒙多系统检查完成: 17个工具中15个正常，2个网络相关工具超时（http_request/web_search），其余全部正常运行",
+    "type": "system_check_result",
+    "timestamp": 1781769875.709642
   },
   {
-    "content": "蒙多功能测试开始时间：2024年当前时间",
-    "type": "测试记录",
-    "timestamp": 1781549244.047055
+    "content": "蒙多系统检查修正：http_request和web_search工具实际正常，之前测试失败是目标服务器问题（httpbin.org返回503），工具本身功能完好",
+    "type": "correction",
+    "timestamp": 1781770025.96963
   },
   {
-    "content": "功能测试记忆条目",
-    "type": "fact",
-    "timestamp": 1781549855.9969559
+    "content": "蒙多浏览器功能修复完成：网络连接正常，Playwright浏览器驱动已安装，创建了完整的浏览器工具模块（mundo_browser.py、mundo_browser_api.py）和命令行工具（mundo-browser），支持网页访问、截图、JavaScript执行、表单操作等所有浏览器功能",
+    "type": "browser_fix",
+    "timestamp": 1781771042.085375
+  },
+  {
+    "content": "蒙多浏览器功能全面测试完成：基础连接稳定，JavaScript执行正常，元素选择准确，表单操作成功，页面导航流畅，截图功能可靠。所有核心功能测试通过，浏览器可自由使用。",
+    "type": "browser_test_complete",
+    "timestamp": 1781773792.52495
+  },
+  {
+    "content": "核心设计理念：放弃控制才能获得控制。不要精确控制每一步输出，而是设计更好的规则和约束，让解决方案在框架内自然涌现。约束设计 > 精确控制。好的约束是引导，不是限制。",
+    "type": "design_philosophy",
+    "timestamp": 1781774366.6965382
+  },
+  {
+    "content": "蒙多时间系统修复完成（2026-06-18 UTC+8）：1) 清理了mimo_memory.json中的2025/2024过期测试数据 2) 爬虫添加了MAX_AGE_DAYS=90日期过滤 3) skill_cloud.py添加数据新鲜度自动检查(6h缓存) 4) 所有时间戳强制使用datetime.now(timezone.utc)系统时间",
+    "type": "time_system_fix",
+    "timestamp": 1781775514.249435
   }
 ]

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict
 
-from github_skill_crawler import run_crawler
+from github_skill_crawler import run_crawler, check_data_freshness
 
 STORE = Path(__file__).parent / "skill_store"
 CATS_FILE = STORE / "categories.json"
@@ -48,10 +48,25 @@ def classify(project: dict) -> str:
     return best
 
 
-def sync_skills() -> dict:
-    """爬取 → 分类 → 存储"""
+def sync_skills(force: bool = False) -> dict:
+    """爬取 → 分类 → 存储（自动检查数据新鲜度）
+
+    Args:
+        force: 强制重新爬取，忽略缓存新鲜度
+    """
     if not CATS_FILE.exists():
         _save(CATS_FILE, CATEGORIES)
+
+    # 检查数据新鲜度
+    if not force:
+        freshness = check_data_freshness()
+        if freshness.get("status") == "fresh" and freshness.get("age_hours", 999) < 6:
+            print(f"[云仓库] 数据仍然新鲜 ({freshness['age_hours']}h)，跳过爬取")
+            idx = _load(INDEX_FILE, {})
+            return {"status": "cached", "total": idx.get("total_skills", 0), "categories": len(idx.get("categories", {}))}
+        print(f"[云仓库] 数据状态: {freshness.get('status', 'unknown')} — {freshness.get('message', '')}")
+    else:
+        print("[云仓库] 强制重新爬取...")
 
     projects = run_crawler()
     if not projects:
@@ -111,7 +126,12 @@ def status() -> dict:
 
 if __name__ == "__main__":
     import sys
-    cmds = {"sync": lambda: print(sync_skills()), "status": lambda: print(status())}
+    cmds = {
+        "sync": lambda: print(sync_skills()),
+        "sync-force": lambda: print(sync_skills(force=True)),
+        "freshness": lambda: print(check_data_freshness()),
+        "status": lambda: print(status()),
+    }
     if len(sys.argv) < 2 or sys.argv[1] not in cmds:
         print(f"用法: python skill_cloud.py [{'|'.join(cmds)}]")
         sys.exit(0 if len(sys.argv) < 2 else 1)

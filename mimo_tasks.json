@@ -20,7 +20,31 @@
   {
     "task_id": "test-001",
     "title": "功能测试任务",
-    "status": "done",
+    "status": "completed",
     "created": 1781549855.9968588
+  },
+  {
+    "task_id": "test-001",
+    "title": "功能测试任务",
+    "status": "pending",
+    "created": 1781769676.3452601
+  },
+  {
+    "task_id": "system-check-001",
+    "title": "系统全面检查任务",
+    "status": "completed",
+    "created": 1781769867.509163
+  },
+  {
+    "task_id": "fix-001",
+    "title": "修复核心模块的宽泛异常捕获",
+    "status": "pending",
+    "created": 1781774559.054434
+  },
+  {
+    "task_id": "agent_research",
+    "title": "研究前沿AI Agent框架并制定升级清单",
+    "status": "pending",
+    "created": 1781774920.127809
   }
 ]
