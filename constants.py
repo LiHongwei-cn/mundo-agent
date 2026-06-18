@@ -26,7 +26,6 @@ CONFIG_FILE = CONFIG_DIR / "settings.json"
 # ═══════════════════════════════════════════════
 
 VERSION = "v2.2.7"
-VERSION = "v2.2.7"
 
 # ═══════════════════════════════════════════════
 # 默认模型（从 config/settings.json 覆盖）

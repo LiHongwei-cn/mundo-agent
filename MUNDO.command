@@ -1,40 +1,37 @@
 #!/bin/bash
 # MUNDO Agent v2.2.7 — macOS 双击启动器
-# 同步逻辑静默执行，Terminal 只显示蒙多
+# 每次启动强制同步，确保运行最新版
 
 SRC="$HOME/Desktop/lihongwei-cn/mundo-agent"
 DST="$HOME/.hermes/mundo-agent"
 
-# 确保目标目录存在
 mkdir -p "$DST"
 
-# 同步版本文件（如果源存在）
-if [ -f "$SRC/version.txt" ] && [ -f "$DST/version.txt" ]; then
-    SRC_VER=$(cat "$SRC/version.txt" | tr -d '[:space:]')
-    DST_VER=$(cat "$DST/version.txt" | tr -d '[:space:]')
+# 源存在时强制同步
+if [ -d "$SRC" ] && [ -f "$SRC/version.txt" ] && [ -f "$SRC/mundo.py" ]; then
+    # 同步所有 .py 文件（增量）
+    for f in "$SRC"/*.py; do
+        [ -f "$f" ] || continue
+        base=$(basename "$f")
+        if ! diff -q "$f" "$DST/$base" >/dev/null 2>&1; then
+            cp "$f" "$DST/$base"
+        fi
+    done
 
-    if [ "$SRC_VER" != "$DST_VER" ]; then
-        echo "  版本不同步: $DST_VER → $SRC_VER，正在同步..."
+    # 同步核心文件
+    for f in version.txt requirements.txt pytest.ini Dockerfile docker-compose.yml README.md; do
+        [ -f "$SRC/$f" ] || continue
+        if ! diff -q "$SRC/$f" "$DST/$f" >/dev/null 2>&1; then
+            cp "$SRC/$f" "$DST/$f"
+        fi
+    done
 
-        # 同步所有 .py 文件
-        for f in "$SRC"/*.py; do
-            [ -f "$f" ] && cp "$f" "$DST/$(basename "$f")"
-        done
-
-        # 同步核心配置文件
-        for f in version.txt requirements.txt pytest.ini Dockerfile docker-compose.yml README.md; do
-            [ -f "$SRC/$f" ] && cp "$SRC/$f" "$DST/$f"
-        done
-
-        # 同步目录
-        for dir in mundo_agent tests config docs examples skill_store .github; do
-            if [ -d "$SRC/$dir" ]; then
-                rsync -a --delete --exclude='__pycache__' "$SRC/$dir/" "$DST/$dir/"
-            fi
-        done
-
-        echo "  同步完成！"
-    fi
+    # 同步目录
+    for dir in mundo_agent tests config docs examples skill_store .github; do
+        if [ -d "$SRC/$dir" ]; then
+            rsync -a --delete --exclude='__pycache__' "$SRC/$dir/" "$DST/$dir/"
+        fi
+    done
 fi
 
 # 确保 setup_complete 存在
