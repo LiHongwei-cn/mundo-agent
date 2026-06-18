@@ -6,9 +6,9 @@
 3. 多模型交叉：跨AI模型家族的最优模型组合
 4. 评级系统：基于测试和反馈的模型评级
 
-最新模型信息（2026年6月18日）：
-- DeepSeek: V4-Pro / V4-Flash / R1（V3系列已于2026-06-08退役，替代：V4系列）
-- 小米 MiMo: V2.5-Pro / V2.5 / Flash（V2系列即将2026-06-30退役，替代：V2.5系列）
+最新模型信息（2026年6月）：
+- DeepSeek: V4-Pro / V4-Flash / R1（V3系列7月24日退役）
+- 小米 MiMo: V2.5-Pro / V2.5 / Flash（V2系列6月30日退役）
 - OpenAI: GPT-5.5 / GPT-5.4 / GPT-5.4-mini
 - Anthropic: Claude Opus 4 / Sonnet 4 / Haiku 4.5
 - Google: Gemini 2.5 Pro / Flash / Flash-Lite

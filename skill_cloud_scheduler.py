@@ -1,11 +1,11 @@
-"""Skill 云仓库定时任务 — 自动检查数据新鲜度"""
+"""Skill 云仓库定时任务"""
 
 import signal
 import sys
 import time
 from datetime import datetime, timezone
 
-from skill_cloud import sync_skills, status, check_data_freshness
+from skill_cloud import sync_skills, status
 
 INTERVAL = 6 * 3600  # 6h
 _stop = False
@@ -33,12 +33,7 @@ def run():
         if _stop:
             break
         try:
-            # 检查新鲜度，只有数据过期时才重新爬取
-            freshness = check_data_freshness()
-            if freshness.get("status") == "fresh":
-                print(f"[调度器] 数据新鲜 ({freshness.get('age_hours', '?')}h)，跳过")
-            else:
-                print(f"[调度器] 同步: {sync_skills()}")
+            print(f"[调度器] 同步: {sync_skills()}")
         except Exception as e:
             print(f"[调度器] 同步失败: {e}")
 
@@ -47,11 +42,6 @@ def run():
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("用法: python skill_cloud_scheduler.py [start|once|force|status]")
+        print("用法: python skill_cloud_scheduler.py [start|once|status]")
         sys.exit(0)
-    {
-        "start": run,
-        "once": lambda: print(sync_skills()),
-        "force": lambda: print(sync_skills(force=True)),
-        "status": lambda: print(status()),
-    }[sys.argv[1]]()
+    {"start": run, "once": lambda: print(sync_skills()), "status": lambda: print(status())}[sys.argv[1]]()

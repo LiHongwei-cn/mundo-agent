@@ -90,17 +90,13 @@ class ToolRegistry:
                     result += fix_hint
 
             return result
-        except (TypeError, KeyError, ValueError) as e:
-            err_msg = f"工具 {name} 参数错误: {e}"
+        except Exception as e:
+            err_msg = f"工具 {name} 执行失败: {e}"
             req = self._required.get(name, [])
-            if req:
+            if req and any(kw in str(e) for kw in ("缺少", "required", "missing", "必需")):
                 err_msg += f"\n必需参数: {', '.join(req)}"
                 err_msg += f"\n收到的参数: {original_keys}"
             return err_msg
-        except (RuntimeError, IOError, OSError) as e:
-            return f"工具 {name} 执行失败: {e}"
-        except Exception as e:
-            return f"工具 {name} 未知错误: {type(e).__name__}: {e}"
 
 
 registry = ToolRegistry()
