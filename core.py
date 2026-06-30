@@ -427,6 +427,10 @@ class MundoEngine:
         return None
 
     def _try_call_llm(self, attempt: int) -> Optional[Dict]:
+        # v2.3.0: LLM 调用速率限制
+        if not self.security.check_rate_limit(f"llm:{self.provider}", max_per_minute=30):
+            return None
+
         messages = self._prepare_messages()
         max_tokens = self.max_tokens_override
 
@@ -557,6 +561,15 @@ class MundoEngine:
             })
             return
 
+        # v2.3.0: 工具调用速率限制
+        if not self.security.check_rate_limit(f"tool:{name}", max_per_minute=60):
+            self.messages.append({
+                "role": "tool",
+                "tool_call_id": tc.get("id", ""),
+                "content": "[速率限制] 该工具调用过于频繁，请稍后再试。"
+            })
+            return
+
         # 策略检查
         policy_result = self.policy.evaluate_tool(name, args)
         if policy_result.is_denied:
@@ -609,12 +622,11 @@ class MundoEngine:
                 # v3.0.1: 错误 HALT 也不中断引擎
                 pass
 
-            # v3.0.0: 智能错误恢复
-            self._handle_tool_error_with_recovery(tc, name, args, e, duration)
+            self._handle_tool_error(tc, name, args, e, duration, use_recovery=True)
 
     def _handle_tool_result(self, tc, name: str, args: dict, output: str, is_error: bool, duration: float):
         if is_error:
-            self._handle_tool_error(tc, name, args, Exception(output), duration)
+            self._handle_tool_error(tc, name, args, Exception(output), duration, use_recovery=False)
             return
 
         self.stats.tool_calls_count += 1
@@ -633,28 +645,11 @@ class MundoEngine:
         self.timeline.record_tool(name, args, str(output)[:1000], duration)
         self.events.publish(EventType.TOOL_RESULT, {"tool": name, "duration_ms": duration}, "engine")
 
-    def _handle_tool_error(self, tc, name: str, args: dict, error: Exception, duration: float):
+    def _handle_tool_error(self, tc, name: str, args: dict, error: Exception, duration: float,
+                           use_recovery: bool = True):
+        """统一的工具错误处理 — v2.3.0 合并重复方法"""
         self._consecutive_errors += 1
         self.stats.errors_count += 1
-        if name == self._last_error_tool:
-            self._same_error_streak += 1
-        else:
-            self._same_error_streak = 1
-            self._last_error_tool = name
-
-        error_msg = f"[工具错误] {name}: {error}"
-        self.messages.append({"role": "tool", "tool_call_id": tc.get("id", ""), "content": error_msg})
-        if self.on_tool_output:
-            self.on_tool_output(name, str(error), True)
-
-        self.timeline.record_error(str(error), name)
-        self.events.publish(EventType.TOOL_ERROR, {"tool": name, "error": str(error)}, "engine")
-
-    def _handle_tool_error_with_recovery(self, tc, name: str, args: dict, error: Exception, duration: float):
-        """v3.0.0: 智能错误恢复"""
-        self._consecutive_errors += 1
-        self.stats.errors_count += 1
-        self.stats.recovery_count += 1
 
         if name == self._last_error_tool:
             self._same_error_streak += 1
@@ -662,19 +657,10 @@ class MundoEngine:
             self._same_error_streak = 1
             self._last_error_tool = name
 
-        # 分析错误类型
-        category, confidence = self.recovery.analyze_error(error, str(error))
-
-        # 获取恢复计划
-        plan = self.recovery.get_recovery_plan(category, self._same_error_streak)
-
-        # 记录错误
-        error_record = {
-            "tool": name,
-            "category": category.name,
-            "strategy": plan.strategy.value,
-            "confidence": confidence,
-        }
+        if use_recovery:
+            self.stats.recovery_count += 1
+            category, confidence = self.recovery.analyze_error(error, str(error))
+            self.recovery.get_recovery_plan(category, self._same_error_streak)
 
         error_msg = f"[工具错误] {name}: {error}"
         self.messages.append({"role": "tool", "tool_call_id": tc.get("id", ""), "content": error_msg})

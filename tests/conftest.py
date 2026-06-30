@@ -10,6 +10,37 @@ from unittest.mock import MagicMock
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+# ═══════════════════════════════════════════════
+# 全局单例重置 — 确保每个测试独立运行
+# ═══════════════════════════════════════════════
+
+_SINGLETON_RESETS = [
+    ("security_hardening", "reset_security"),
+    ("cache", "reset_cache_manager"),
+]
+
+
+def _reset_all_singletons():
+    """重置所有模块级全局单例 — 确保测试隔离"""
+    for module_name, func_name in _SINGLETON_RESETS:
+        try:
+            mod = __import__(module_name)
+            reset_fn = getattr(mod, func_name, None)
+            if reset_fn:
+                reset_fn()
+        except Exception:
+            pass
+
+
+@pytest.fixture(autouse=True)
+def reset_singletons():
+    """每个测试前自动重置所有全局单例"""
+    _reset_all_singletons()
+    yield
+
+
+# ═══════════════════════════════════════════════
+
 @pytest.fixture
 def temp_dir(tmp_path):
     """创建临时目录"""

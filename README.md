@@ -1,4 +1,4 @@
-# 👑 MUNDO Agent v2.2.8
+# 👑 MUNDO Agent v2.3.0
 
 **我是蒙多！蒙多想去哪就去哪！**
 
@@ -27,10 +27,10 @@
 
 ```bash
 # 下载最新版
-gh release download v2.2.8 -R LiHongwei-cn/mundo-agent -p "mundo-v2.2.8-macos.zip"
+gh release download v2.3.0 -R LiHongwei-cn/mundo-agent -p "mundo-v2.3.0-macos.zip"
 
 # 解压到安装目录
-unzip mundo-v2.2.8-macos.zip -d ~/.hermes/mundo-agent
+unzip mundo-v2.3.0-macos.zip -d ~/.hermes/mundo-agent
 
 # 运行
 python3 ~/.hermes/mundo-agent/mundo.py
@@ -126,7 +126,7 @@ mundo-agent/
 pytest tests/ -v --cov=. --cov-report=term-missing
 ```
 
-169 个单元测试覆盖所有核心模块。
+169 个单元测试覆盖所有核心模块（含安全模块和核心引擎测试）。
 
 ---
 
@@ -160,6 +160,15 @@ curl -X POST http://127.0.0.1:3100 -H 'Content-Type: application/json' -d '{
 ---
 
 ## 📝 版本历史
+
+### v2.3.0 (2026-07-01)
+- 统一启动器同步：`mundo-sync.sh` 自动检测最新源码并同步到 `~/.hermes/mundo-agent`
+- 程序坞启动器修复：`.app` 每次启动自动同步，不再运行旧版本
+- 安全强化：扩展输出脱敏（JWT/Bearer/DB 连接串/AWS/GCP 密钥）
+- 核心引擎：LLM/工具速率限制 + 统一错误恢复路径
+- 工具安全：终端命令危险模式拦截 + read_file 行偏移修复
+- 测试增强：新增 test_core.py + test_security.py
+- 日志系统：沙箱/权限受限时优雅降级为仅控制台输出
 
 ### v2.2.8 (2026-06-18)
 - 向量检索：ChromaDB + BM25 + 语义哈希三路融合
