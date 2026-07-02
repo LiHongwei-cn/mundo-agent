@@ -6,16 +6,25 @@ export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
 export LANG=zh_CN.UTF-8
 export LC_ALL=zh_CN.UTF-8
 
+# 程序坞/Finder 启动时 HOME 可能未设置
+if [ -z "${HOME:-}" ]; then
+    USER_NAME="$(/usr/bin/id -un 2>/dev/null || echo "")"
+    if [ -n "$USER_NAME" ] && [ -d "/Users/$USER_NAME" ]; then
+        export HOME="/Users/$USER_NAME"
+    else
+        export HOME="$(/usr/bin/eval echo "~$USER_NAME")"
+    fi
+fi
+
 show_error() {
-    osascript -e "display dialog \"$1\" buttons {\"确定\"} default button \"确定\" with icon stop with title \"MUNDO 错误\""
+    osascript -e "display dialog \"$1\" buttons {\"确定\"} default button \"确定\" with icon stop with title \"MUNDO Error\""
     exit 1
 }
 
-# 定位同步脚本：优先 .app 内置 Resources
+# 定位同步脚本
 SYNC_SCRIPT=""
 for candidate in \
     "$(dirname "$0")/../Resources/mundo-sync.sh" \
-    "$(dirname "$0")/../../mundo-sync.sh" \
     "$HOME/.hermes/mundo-agent/mundo-sync.sh" \
     "$HOME/Desktop/MUNDO/mundo-agent/mundo-sync.sh" \
     "$HOME/Desktop/lihongwei-cn/mundo-agent/mundo-sync.sh"; do
@@ -25,38 +34,38 @@ for candidate in \
     fi
 done
 
-if [ -z "$SYNC_SCRIPT" ]; then
-    show_error "找不到 mundo-sync.sh！\\n\\n请重新安装蒙多 Agent v2.3.1"
-fi
-
-if ! bash "$SYNC_SCRIPT"; then
-    show_error "蒙多同步失败！\\n\\n请确认源码目录存在: ~/Desktop/MUNDO/mundo-agent"
-fi
-
 MUNDO_HOME="$HOME/.hermes/mundo-agent"
-VENV_PYTHON="$MUNDO_HOME/venv/bin/python3"
+mkdir -p "$HOME/.hermes"
 
-# 确保 setup_complete 存在
-if [ ! -f "$MUNDO_HOME/.setup_complete" ] && [ -f "$MUNDO_HOME/.env" ]; then
-    if grep -q "API_KEY" "$MUNDO_HOME/.env" 2>/dev/null; then
-        echo "xiaomi
-mimo-v2.5-pro" > "$MUNDO_HOME/.setup_complete"
+# 尝试同步；失败时若已有安装则降级启动
+SYNC_OK=0
+if [ -n "$SYNC_SCRIPT" ]; then
+    if bash "$SYNC_SCRIPT"; then
+        SYNC_OK=1
     fi
 fi
 
-# 优先使用 venv python
-if [ -x "$VENV_PYTHON" ]; then
-    RUN_CMD="cd \"$MUNDO_HOME\" && export PYTHONDONTWRITEBYTECODE=1 && \"$VENV_PYTHON\" mundo.py"
-else
-    RUN_CMD="cd \"$MUNDO_HOME\" && export PYTHONDONTWRITEBYTECODE=1 && python3 mundo.py"
+if [ "$SYNC_OK" -eq 0 ] && [ ! -f "$MUNDO_HOME/mundo.py" ]; then
+    show_error "蒙多同步失败！\\n\\n请确认以下目录之一存在：\\n~/Desktop/MUNDO/mundo-agent\\n~/.hermes/mundo-agent"
 fi
+
+VENV_PYTHON="$MUNDO_HOME/venv/bin/python3"
+
+# 写入 Terminal 启动脚本（避免 osascript 引号嵌套问题）
+cat > "$HOME/.hermes/MUNDO.command" << COMMAND
+#!/bin/bash
+cd "$MUNDO_HOME"
+export PYTHONDONTWRITEBYTECODE=1
+if [ -x "$VENV_PYTHON" ]; then
+  exec "$VENV_PYTHON" mundo.py "\$@"
+else
+  exec python3 mundo.py "\$@"
+fi
+COMMAND
+chmod +x "$HOME/.hermes/MUNDO.command"
 
 INSTALLED_VER=$(cat "$MUNDO_HOME/version.txt" 2>/dev/null | tr -d '[:space:]' || echo "unknown")
 
-osascript <<EOF
-tell application "Terminal"
-    activate
-    do script "$RUN_CMD"
-    set custom title of front window to "MUNDO v$INSTALLED_VER — THE EMPEROR"
-end tell
-EOF
+/usr/bin/osascript -e "tell application \"Terminal\" to activate" \
+  -e "tell application \"Terminal\" to do script \"bash $HOME/.hermes/MUNDO.command\"" \
+  -e "tell application \"Terminal\" to set custom title of front window to \"MUNDO v$INSTALLED_VER\""

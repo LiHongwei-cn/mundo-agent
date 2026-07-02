@@ -3,9 +3,19 @@
 # 所有启动器（程序坞 .app / MUNDO.command / MUNDO-app-launcher.sh）均调用此脚本
 # 确保 ~/.hermes/mundo-agent 始终运行最新版本
 
-set -euo pipefail
+set -eo pipefail
 
 export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
+
+# 程序坞/Finder 启动时 HOME 可能未设置，必须先修复
+if [ -z "${HOME:-}" ]; then
+    USER_NAME="$(/usr/bin/id -un 2>/dev/null || echo "")"
+    if [ -n "$USER_NAME" ] && [ -d "/Users/$USER_NAME" ]; then
+        export HOME="/Users/$USER_NAME"
+    else
+        export HOME="$(/usr/bin/eval echo "~$USER_NAME")"
+    fi
+fi
 
 DST="${MUNDO_INSTALL_DIR:-$HOME/.hermes/mundo-agent}"
 
@@ -17,18 +27,10 @@ CANDIDATES=(
     "/tmp/mundo-v210-windows/mundo-agent"
 )
 
-# 脚本自身所在目录（.app 内置时）
+# 脚本自身所在目录（含 version.txt + mundo.py 才算有效源码）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")"
 if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/version.txt" ] && [ -f "$SCRIPT_DIR/mundo.py" ]; then
     CANDIDATES=("$SCRIPT_DIR" "${CANDIDATES[@]}")
-fi
-
-# .app 内置 Resources 目录
-if [ -n "$SCRIPT_DIR" ]; then
-    RES_DIR="$(cd "$SCRIPT_DIR/../Resources" 2>/dev/null && pwd || echo "")"
-    if [ -n "$RES_DIR" ] && [ -f "$RES_DIR/mundo-sync.sh" ]; then
-        CANDIDATES=("$RES_DIR" "${CANDIDATES[@]}")
-    fi
 fi
 
 # ═══ 解析版本号 ═══

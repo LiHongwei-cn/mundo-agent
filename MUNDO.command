@@ -6,6 +6,16 @@ export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
 export LANG=zh_CN.UTF-8
 export LC_ALL=zh_CN.UTF-8
 
+# 程序坞/Finder 启动时 HOME 可能未设置
+if [ -z "${HOME:-}" ]; then
+    USER_NAME="$(/usr/bin/id -un 2>/dev/null || echo "")"
+    if [ -n "$USER_NAME" ] && [ -d "/Users/$USER_NAME" ]; then
+        export HOME="/Users/$USER_NAME"
+    else
+        export HOME="$(/usr/bin/eval echo "~$USER_NAME")"
+    fi
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SYNC_SCRIPT="$SCRIPT_DIR/mundo-sync.sh"
 
