@@ -1,5 +1,5 @@
 #!/bin/bash
-# MUNDO Agent v2.3.0 — macOS .app 启动脚本
+# MUNDO Agent v2.3.1 — macOS .app 启动脚本
 # 调用统一同步脚本，确保程序坞启动器始终运行最新版
 
 export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"

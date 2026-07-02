@@ -1,14 +1,20 @@
 #!/bin/bash
-# MUNDO Agent v2.3.0 — macOS 程序坞启动器
-# 每次启动自动同步最新版，然后运行
+# MUNDO Agent v2.3.1 — macOS 程序坞启动器
+# 每次启动强制同步最新版，验证版本后运行
 
 export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
 export LANG=zh_CN.UTF-8
 export LC_ALL=zh_CN.UTF-8
 
-# 定位同步脚本：优先 .app 内置，其次安装目录，最后源码目录
+show_error() {
+    osascript -e "display dialog \"$1\" buttons {\"确定\"} default button \"确定\" with icon stop with title \"MUNDO 错误\""
+    exit 1
+}
+
+# 定位同步脚本：优先 .app 内置 Resources
 SYNC_SCRIPT=""
 for candidate in \
+    "$(dirname "$0")/../Resources/mundo-sync.sh" \
     "$(dirname "$0")/../../mundo-sync.sh" \
     "$HOME/.hermes/mundo-agent/mundo-sync.sh" \
     "$HOME/Desktop/MUNDO/mundo-agent/mundo-sync.sh" \
@@ -19,11 +25,16 @@ for candidate in \
     fi
 done
 
-if [ -n "$SYNC_SCRIPT" ]; then
-    bash "$SYNC_SCRIPT" 2>/dev/null || true
+if [ -z "$SYNC_SCRIPT" ]; then
+    show_error "找不到 mundo-sync.sh！\\n\\n请重新安装蒙多 Agent v2.3.1"
+fi
+
+if ! bash "$SYNC_SCRIPT"; then
+    show_error "蒙多同步失败！\\n\\n请确认源码目录存在: ~/Desktop/MUNDO/mundo-agent"
 fi
 
 MUNDO_HOME="$HOME/.hermes/mundo-agent"
+VENV_PYTHON="$MUNDO_HOME/venv/bin/python3"
 
 # 确保 setup_complete 存在
 if [ ! -f "$MUNDO_HOME/.setup_complete" ] && [ -f "$MUNDO_HOME/.env" ]; then
@@ -33,10 +44,19 @@ mimo-v2.5-pro" > "$MUNDO_HOME/.setup_complete"
     fi
 fi
 
+# 优先使用 venv python
+if [ -x "$VENV_PYTHON" ]; then
+    RUN_CMD="cd \"$MUNDO_HOME\" && export PYTHONDONTWRITEBYTECODE=1 && \"$VENV_PYTHON\" mundo.py"
+else
+    RUN_CMD="cd \"$MUNDO_HOME\" && export PYTHONDONTWRITEBYTECODE=1 && python3 mundo.py"
+fi
+
+INSTALLED_VER=$(cat "$MUNDO_HOME/version.txt" 2>/dev/null | tr -d '[:space:]' || echo "unknown")
+
 osascript <<EOF
 tell application "Terminal"
     activate
-    do script "cd \"$MUNDO_HOME\" && export PYTHONDONTWRITEBYTECODE=1 && python3 mundo.py"
-    set custom title of front window to "MUNDO — THE EMPEROR"
+    do script "$RUN_CMD"
+    set custom title of front window to "MUNDO v$INSTALLED_VER — THE EMPEROR"
 end tell
 EOF
